@@ -14,11 +14,11 @@
 
 INPUT = OCR-D-GT-SEG-LINE
 
-BIN = $(INPUT)-BINPAGE-wolf
+BIN = $(INPUT)-BINPAGE-sauvola
 
 $(BIN): $(INPUT)
 $(BIN): TOOL = ocrd-olena-binarize
-$(BIN): PARAMS = "impl": "wolf"
+$(BIN): PARAMS = "impl": "sauvola-ms-split"
 
 DEN = $(BIN)-DENOISE-ocropy
 

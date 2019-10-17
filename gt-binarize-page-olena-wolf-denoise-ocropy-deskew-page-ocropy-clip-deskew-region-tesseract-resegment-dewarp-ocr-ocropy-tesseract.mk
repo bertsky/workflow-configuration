@@ -1,13 +1,13 @@
-include Makefile
-
 # Install by copying (or symlinking) makefiles into a directory
 # where all OCR-D workspaces (unpacked BagIts) reside. Then
 # chdir to that location.
 
 # Call via:
-# `make -f workflow-config.mk WORKSPACE-DIRS` or
-# `make -f workflow-config.mk all` or just
-# `make -f workflow-config.mk`
+# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
+# `make -f WORKFLOW-CONFIG.mk all` or just
+# `make -f WORKFLOW-CONFIG.mk`
+# To rebuild partially, you must pass -W to recursive make:
+# `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
 
 ###
 # From here on, custom configuration begins.
@@ -24,7 +24,7 @@ DEN = $(BIN)-DENOISE-ocropy
 
 $(DEN): $(BIN)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
-$(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 2
+$(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
 DESK = $(DEN)-DESKEW-ocropy
 
@@ -79,12 +79,12 @@ $(OUTPUT): $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6)
 $(OUTPUT): $(INPUT)
 	ocrd-cor-asv-ann-evaluate -I `echo $^ | tr ' ' ,`
 
-# we should try switching default goal
-# between `all` outside
-# and `$(OUTPUT)` inside of workspaces
-# for now, let's just assume all configs
-# use $(OUTPUT)
-#.DEFAULT_GOAL := $(OUTPUT)
+.DEFAULT_GOAL = $(OUTPUT)
 
 .PHONY: $(OUTPUT)
+
+# Down here, custom configuration ends.
+###
+
+include Makefile
 

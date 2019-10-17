@@ -14,11 +14,11 @@
 
 INPUT = OCR-D-GT-SEG-LINE
 
-BIN = $(INPUT)-BINPAGE-wolf
+BIN = $(INPUT)-BINPAGE-sauvola
 
 $(BIN): $(INPUT)
 $(BIN): TOOL = ocrd-olena-binarize
-$(BIN): PARAMS = "impl": "wolf"
+$(BIN): PARAMS = "impl": "sauvola-ms-split"
 
 DEN = $(BIN)-DENOISE-ocropy
 
@@ -26,15 +26,9 @@ $(DEN): $(BIN)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
 $(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
-DESK = $(DEN)-DESKEW-ocropy
+CLIP = $(DEN)-CLIP
 
-$(DESK): $(DEN)
-$(DESK): TOOL = ocrd-cis-ocropy-deskew
-$(DESK): PARAMS = "level-of-operation": "page", "maxskew": 5
-
-CLIP = $(DESK)-CLIP
-
-$(CLIP): $(DESK)
+$(CLIP): $(DEN)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
 RESEG = $(CLIP)-RESEG
