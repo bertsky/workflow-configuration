@@ -1,6 +1,6 @@
-## OCR-D workflow configurations based makefiles
+## OCR-D workflow configurations based on makefiles
 
-This provides a first attempt at running [https://ocr-d.github.io](OCR-D) workflows configured and controlled via GNU makefiles. Makefilization offers the following advantages:
+This provides a first attempt at running [OCR-D](https://ocr-d.github.io) workflows configured and controlled via GNU makefiles. Makefilization offers the following _advantages_:
 
 - incremental builds (steps already processed for another configuration or in a failed run need not be repeated) and automatic dependencies (new files will force all their dependents to update)
 - persistency of configuration and results
@@ -8,6 +8,11 @@ This provides a first attempt at running [https://ocr-d.github.io](OCR-D) workfl
 - sharing configurations and repeating experiments
 - less writing effort, fast templating
 - parallelization across workspaces
+
+Nevertheless, there are also some _disadvantages_:
+
+- depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
+- must mediate between filesystem perspective (understood by `make`) and METS perspective
 
 ### Installation
 
