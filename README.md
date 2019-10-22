@@ -16,15 +16,15 @@ Nevertheless, there are also some _disadvantages_:
 
 ### Installation
 
-Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the target directory. (The target directory is the one where the OCR workspace directories can be found. It is searched for `mets.xml` files recursively.)
+Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the target directory. (The target directory is the one where the OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
 
 Of course, [OCR-D core](https://github.com/OCR-D/core) itself must be installed along with its dependencies in the current environment. Moreover, depending on the actual configuration (the processors it contains), additional modules must be installed. Ideally, the configuration itself offers a target `install` which would cover all that.
 
 ### Usage
 
 To run:
-1. Activate working environment and change to the target directory.
-2. Choose (or create) a workflow configuration makefile. (Yes, you may have to look inside and browse its rules!)
+1. Activate working environment (virtualenv) and change to the target directory.
+2. Choose (or create) a workflow configuration makefile. (Yes, you should have to look inside and browse its rules!)
 3. Execute: 
 ```bash
 make -f CONFIGURATION.mk
@@ -33,14 +33,75 @@ make -f CONFIGURATION.mk
 You can also run on a subset of workspaces by giving these as command line targets:
 3. Execute:
 ```bash
-make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2
+make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 ```
+
+To clone and bag/zip each workspace including only the results of the chosen configuration, and optimise it for JPageViewer: `make -f CONFIGURATION.mk view`
 
 To get help: `make help`
 
+To get a short description of the chosen configuration: `make CONFIGURATION.mk info`
+
+To prepare workspaces for processing by fixing certain flaws that kept happening during publication: `make repair`
+
 To spawn a new configuration file: `make NEW-CONFIGURATION.mk`
 
-To clone and bag/zip each workspace including only the results of the current configuration, and optimise it for JPageViewer: `make view`
+### Customisation
+
+To write new configurations, first choose a sufficiently (descriptive) makefile name, and spawn a new file for that: `make NEW-CONFIGURATION.mk`.
+
+Next, edit the file to your needs: Write rules using file groups as prerequisites/targets in the normal GNU make syntax. The first target defined must be the default goal that builds the very last file group for that configuration, or else a variable `.DEFAULT_GOAL` pointing to that target must be set anywhere in the makefile.
+
+#### Recommendations
+
+- Keep the comments and the `include Makefile` directive in the file.
+- Change/customize at least the `info` target, and the `INPUT` and `OUTPUT` name/rule.
+- Copy/paste rules from the existing configurations.
+- Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
+- Try to use the static pattern rule (which takes the target as output file group and the prerequisite as input file group) for most OCR-D CLIs – unless you have more than 1 input or output file group, or your operation does not use an OCR-D CLI – by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever .
+
+#### Example
+
+```make
+INPUT = OCR-D-GT-SEG-LINE
+
+# You can re-use file group names to keep the rules brief:
+BIN = $(INPUT)-BINPAGE
+
+# This is how you use the pattern rule from Makefile (included below):
+# The prerequisite will become the input file group,
+# the target will become the output file group,
+# the recipe will call the executable given by TOOL,
+# also generating a JSON parameter file from PARAMS:
+$(BIN): $(INPUT)
+$(BIN): TOOL = ocrd-olena-binarize
+$(BIN): PARAMS = "impl": "sauvola-ms-split"
+
+OCR = OCR-D-OCR-TESS
+
+$(OCR): $(BIN)
+$(OCR): TOOL = ocrd-tesserocr-recognize
+$(OCR): PARAMS = "textequiv_level": "glyph", "overwrite_words": true, "model": "frk+deu"
+
+OUTPUT = EVAL
+
+# This needs a non-standard recipe, because it uses
+# more than 1 input file group and no output file group:
+$(OUTPUT): $(OCR)
+$(OUTPUT): $(INPUT)
+	ocrd-cor-asv-ann-evaluate -I `echo $^ | tr ' ' ,`
+
+# Because no file group (directory) is created,
+# we have to declare this target as phony:
+.PHONY: $(OUTPUT)
+
+# Because the first target in this file was $(BIN),
+# we must override the default goal to be our desired target:
+.DEFAULT_GOAL = $(OUTPUT)
+
+# Always necessary:
+include Makefile
+```
 
 ### Results
 
@@ -48,22 +109,53 @@ To clone and bag/zip each workspace including only the results of the current co
 
 For the `bagit_data_text_structur` repository, which includes both layout and text annotation down to the textline level, but very coarse segmentation, the following _character error rate_ (CER) was measured:
 
-| *pipeline* | *CER* |
+| *pipeline configuration* | *CER* |
 | ---------- | ----- |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .255 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .255 |
 | OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .263 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .248 ← |
 | OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .267 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .249 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .303 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .302 |
 | OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .314 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .290 ← |
 | OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .317 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .292 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .121 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .121 |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .122 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .118 ← |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .124 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .119 |
+| OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .118 |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .119 |
 | OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .117 |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .114 ← |
 | OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .120 |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .116 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .114 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .114 |
 | OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .113 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .111 ← |
 | OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .116 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .111 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .087 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .087 |
 | OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .094 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .087 ←← |
 | OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .100 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .087 |
 
 ### Implementation
 
-...
+To make writing (and reading) configurations as simple as possible, they are expressed as rules operating on METS file groups (i.e. workspace-local). For convenience, the most common recipe pattern involving only 1 input and 1 output file group via some OCR-D CLI is available via static pattern rule, which merely takes the target-specific variables `TOOL` (the CLI executable) and optionally `PARAMS` (a comma-separated list of parameter assignments). Custom rules are possible as well. If the makefile does not start with the overall target, it must specify its `.DEFAULT_GOAL`, so callers can run without knowledge of the target names.
 
+Rules that are not configuration-specific (like the static pattern rule) are all shared by including a common `Makefile` at the end of configuration makefiles. That file has 2 sets of rules:
+- a top-level set operating in the target directory (possibly in parallel),
+  targets are the available workspaces, and the global default goal `all`,
+- a low-level set operating in the workspace directory (always sequentially),
+  targets are the configured file groups, including the local default goal.
+
+The former calls the latter recursively for each workspace.

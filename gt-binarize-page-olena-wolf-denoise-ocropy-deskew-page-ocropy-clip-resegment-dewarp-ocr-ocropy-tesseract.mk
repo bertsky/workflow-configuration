@@ -12,6 +12,15 @@
 ###
 # From here on, custom configuration begins.
 
+info:
+	@echo "Read GT line segmentation,"
+	@echo "then binarize+denoise+deskew pages,"
+	@echo "then clip regions,"
+	@echo "then resegment+dewarp lines,"
+	@echo "then recognize lines with various Ocropus+Tesseract models,"
+	@echo "and finally evaluate OCR quality by measuring"
+	@echo "character error rates on line texts w.r.t. GT."
+
 INPUT = OCR-D-GT-SEG-LINE
 
 BIN = $(INPUT)-BINPAGE-wolf

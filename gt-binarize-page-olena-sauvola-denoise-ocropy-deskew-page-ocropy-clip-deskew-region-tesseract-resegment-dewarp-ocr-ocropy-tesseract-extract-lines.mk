@@ -15,11 +15,12 @@
 info:
 	@echo "Read GT line segmentation,"
 	@echo "then binarize+denoise+deskew pages,"
-	@echo "then clip regions,"
+	@echo "then clip+deskew regions,"
 	@echo "then resegment+dewarp lines,"
 	@echo "then recognize lines with various Ocropus+Tesseract models,"
-	@echo "and finally evaluate OCR quality by measuring"
-	@echo "character error rates on line texts w.r.t. GT."
+	@echo "and finally extract line images and line texts"
+	@echo "(both the GT and OCR versions) into one directory,"
+	@echo "with conventional filename suffixes for OCR/post-correction training."
 
 INPUT = OCR-D-GT-SEG-LINE
 
@@ -46,9 +47,15 @@ CLIP = $(DESK)-CLIP
 $(CLIP): $(DESK)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
-RESEG = $(CLIP)-RESEG
+DESK2 = $(CLIP)-DESKEW-tesseract
 
-$(RESEG): $(CLIP)
+$(DESK2): $(CLIP)
+$(DESK2): TOOL = ocrd-tesserocr-deskew
+$(DESK2): PARAMS = "operation_level": "region"
+
+RESEG = $(DESK2)-RESEG
+
+$(RESEG): $(DESK2)
 $(RESEG): TOOL = ocrd-cis-ocropy-resegment
 
 DEW = $(RESEG)-DEWARP
@@ -75,12 +82,28 @@ $(OCR4): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" 
 $(OCR5): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "frk+deu"
 $(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "GT4HistOCR_2000000"
 
-OUTPUT = $(DEW)-OCR
+LINES = $(patsubst %,OCR-D-IMG-LINES-%,$(DEW) $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6))
 
-$(OUTPUT): $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6)
-# must be last to become first:
-$(OUTPUT): $(INPUT)
-	ocrd-cor-asv-ann-evaluate -I `echo $^ | tr ' ' ,`
+$(LINES): OCR-D-IMG-LINES-%: %
+$(LINES): TOOL = ocrd-segment-extract-lines
+$(LINES): PARAMS = "transparency": true
+
+OUTPUT = OCR-D-IMG-LINES
+
+$(OUTPUT): $(LINES)
+	@mkdir -p $(OUTPUT)
+	set -e; \
+	ln -frs $</* $@; \
+	for grp in $(filter-out $<,$^); do \
+		suffix=$(<:OCR-D-IMG-LINES-$(INPUT)-%=%); \
+		ocr=$${grp%-$$suffix}; \
+		ocr=$${ocr#OCR-D-IMG-LINES-}; \
+		for file in $$grp/*.gt.txt; do \
+			newfile=$${file/$$grp\/$$grp/$@\/$<}; \
+			newfile=$${newfile/.gt.txt/.$$ocr.txt}; \
+			ln -frs $$file $$newfile; \
+		done \
+	done || { rm -fr $(OUTPUT); exit 1; }
 
 .DEFAULT_GOAL = $(OUTPUT)
 
