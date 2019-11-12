@@ -112,64 +112,84 @@ For the `bagit_data_text_structur` repository, which includes both layout and te
 | *pipeline configuration* | *CER* |
 | ---------- | ----- |
 | OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .243 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .241 ← |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .242 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .255 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .255 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.241** |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .255 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .252 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .263 |
 | OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .248 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .263 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .249 |
-| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .267 |
-| ---------- | ----- |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .262 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .273 |
+| OCR-D-OCR-OCRO-fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .266 |
+| | |
 | OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .290 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .287 ← |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .290 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .302 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .303 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .290 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.287** |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .301 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .296 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .317 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .292 |
 | OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .314 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .292 |
-| OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .317 |
-| ---------- | ----- |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .325 |
+| OCR-D-OCR-OCRO-frakturjze-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .318 |
+| | |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .114 |
-| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .113 ← |
-| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP| .115 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.113** |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP| .127 |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .121 |
-| OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .121 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .122 |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .118 |
 | OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .122 |
-| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .119 |
-| OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .124 |
-| ---------- | ----- |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .124 |
+| OCR-D-OCR-TESS-Fraktur-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .123 |
+| | |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .117 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.116** |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP| .131 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .121 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .126 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .122 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .124 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .128 |
+| OCR-D-OCR-TESS-Fraktur+Latin-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .126 |
+| | |
 | OCR-D-OCR-TESS-frk-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .110 |
-| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .109 ← |
-| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .111 |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.109** |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .126 |
 | OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .119 |
 | OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .118 |
-| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .114 |
-| OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .117 |
-| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .116 |
-| OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .120 |
-| ---------- | ----- |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .115 |
+| OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .116 |
+| OCR-D-OCR-TESS-frk-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .120 |
+| OCR-D-OCR-TESS-frk-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .119 |
+| | |
 | OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .106 |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .106 ← |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .107 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.106** |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .122 |
 | OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .114 |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .114 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .113 |
 | OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .111 |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .113 |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .111 |
-| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .116 |
-| ---------- | ----- |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .078 ←← |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .083 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .081 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .087 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .087 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .087 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .094 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .087 |
-| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .100 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .112 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .117 |
+| OCR-D-OCR-TESS-frk+deu-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .115 |
+| | |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-CLIP-RESEG-DEWARP | **.078** |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | .081 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .094 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .085 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .089 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .084 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .090 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .091 |
+| OCR-D-OCR-TESS-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .094 |
+| | |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-CLIP-RESEG-DEWARP | .081 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-RESEG-DEWARP | **.074** |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .087 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-CLIP-RESEG-DEWARP | .084 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-CLIP-RESEG-DEWARP | .085 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP| .086 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-RESEG-DEWARP | .109 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-sauvola-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .090 |
+| OCR-D-OCR-CALA-gt4histocr-BINPAGE-wolf-DENOISE-ocropy-DESKEW-ocropy-CLIP-DESKEW-tesseract-RESEG-DEWARP | .110 |
 
 Hence, it appears that consistently (across different OCRs) ...
 - denoising with Ocropy (with `noise_maxsize=3.0`) does _not_ help

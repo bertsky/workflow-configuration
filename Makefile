@@ -173,7 +173,7 @@ PARAMS =
 %:
 	-ocrd workspace remove-group -r $@ 2>/dev/null
 	$(file > $@.json, { $(PARAMS) })
-	$(TOOL) -I $< -O $@ -p $@.json && \
+	$(TOOL) -I $< -O $@ -p $@.json 2>&1 | tee $@.log && \
 		touch $@ || { \
 		rm -fr $@.json $@; exit 1; }
 

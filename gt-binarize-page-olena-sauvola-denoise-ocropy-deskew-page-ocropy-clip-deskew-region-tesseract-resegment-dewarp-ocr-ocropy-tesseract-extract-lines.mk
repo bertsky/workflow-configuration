@@ -77,7 +77,7 @@ $(OCR1): PARAMS = "textequiv_level": "glyph", "model": "fraktur.pyrnn"
 $(OCR2): PARAMS = "textequiv_level": "glyph", "model": "fraktur-jze.pyrnn"
 
 $(OCR3) $(OCR4) $(OCR5) $(OCR6): TOOL = ocrd-tesserocr-recognize
-$(OCR3): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "Fraktur"
+$(OCR3): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "script/Fraktur"
 $(OCR4): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "frk"
 $(OCR5): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "frk+deu"
 $(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "GT4HistOCR_2000000"
