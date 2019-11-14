@@ -73,6 +73,7 @@ $(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" 
 $(OCR7): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "GT4HistOCR_2000000+GT4HistOCR_300000+GT4HistOCR_100000"
 
 $(OCR8): TOOL = ocrd-calamari-recognize
+$(OCR8): GPU = 1
 $(OCR8): PARAMS = "checkpoint" : "$(VIRTUAL_ENV)/share/calamari/GT4HistOCR/*.ckpt.json"
 
 OUTPUT = $(DEW)-OCR

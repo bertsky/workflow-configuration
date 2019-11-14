@@ -169,13 +169,36 @@ else
 # FIXME: Also, this does not cover multiple output filegrps
 # (ignoring them will give side effects!)
 TOOL =
-PARAMS = 
+GPU =
+PARAMS =
+
+define toolrecipe =
+$(TOOL) -I $< -O $@ -p $@.json 2>&1 | tee $@.log && \
+	touch $@ || { \
+	rm -fr $@.json $@; exit 1; }
+endef
+# Extra recipe to control allocation of GPU resources
+# (for processors explicitly configured as CUDA-enabled):
+# If not enough GPUs are available for a new processor
+# at any given time, then invocation should fallback to CPU.
+# (This requires CUDA toolkit and GNU parallel.)
+gputoolrecipe = $(toolrecipe)
+ifneq ($(shell which nvidia-smi),)
+ifneq ($(shell which sem),)
+NGPUS = $(shell nvidia-smi -L | wc -l)
+define gputoolrecipe =
+if sem --id OCR-D-GPUSEM -j $(NGPUS) --st -3 true 2>/dev/null; then \
+   sem --id OCR-D-GPUSEM -j $(NGPUS) --fg $(toolrecipe); else \
+   CUDA_VISIBLE_DEVICES= $(toolrecipe); fi
+endef
+else
+$(warning You risk running into GPU races. Install GNU parallel to synchronize CUDA-enabled processors.)
+endif
+endif
 %:
 	-ocrd workspace remove-group -r $@ 2>/dev/null
 	$(file > $@.json, { $(PARAMS) })
-	$(TOOL) -I $< -O $@ -p $@.json 2>&1 | tee $@.log && \
-		touch $@ || { \
-		rm -fr $@.json $@; exit 1; }
+	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
 view:
 # filter out file groups we do not need for current configuration:

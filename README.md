@@ -58,7 +58,12 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 - Change/customize at least the `info` target, and the `INPUT` and `OUTPUT` name/rule.
 - Copy/paste rules from the existing configurations.
 - Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
-- Try to use the static pattern rule (which takes the target as output file group and the prerequisite as input file group) for most OCR-D CLIs – unless you have more than 1 input or output file group, or your operation does not use an OCR-D CLI – by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever .
+- Try to use the static pattern rule (which takes the target as output file group and the prerequisite as input file group) for most OCR-D CLIs – unless you have more than 1 input or output file group, or your operation does not use an OCR-D CLI – by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever.
+- When your processor uses GPU resources, you must prevent races for GPU memory during parallel execution.
+  
+  You can achieve this by simply setting `GPU = 1` when using the static pattern rule, or by using `sem --id OCR-D-GPUSEM` in your own recipes.
+  
+  Alternatively, you can either prevent using GPUs globally by (un)setting `CUDA_VISIBLE_DEVICES=`, or using multiple CPUs by not running with `-j`.
 
 #### Example
 
@@ -89,7 +94,7 @@ OUTPUT = EVAL
 # more than 1 input file group and no output file group:
 $(OUTPUT): $(OCR)
 $(OUTPUT): $(INPUT)
-	ocrd-cor-asv-ann-evaluate -I `echo $^ | tr ' ' ,`
+	ocrd-cor-asv-ann-evaluate -I $(call concatcomma,$^)
 
 # Because no file group (directory) is created,
 # we have to declare this target as phony:
@@ -99,6 +104,9 @@ $(OUTPUT): $(INPUT)
 # we must override the default goal to be our desired target:
 .DEFAULT_GOAL = $(OUTPUT)
 
+comma = ,
+concatcomma = $(subst $() $(),$(comma),$(1))
+
 # Always necessary:
 include Makefile
 ```
@@ -107,7 +115,7 @@ include Makefile
 
 #### OCR-D ground truth
 
-For the `bagit_data_text_structur` repository, which includes both layout and text annotation down to the textline level, but very coarse segmentation, the following _character error rate_ (CER) was measured:
+For the `data_structure_text/dta` repository, which includes both layout and text annotation down to the textline level, but very coarse segmentation, the following _character error rate_ (CER) was measured:
 
 | *pipeline configuration* | *CER* |
 | ---------- | ----- |
@@ -208,3 +216,11 @@ Rules that are not configuration-specific (like the static pattern rule) are all
   targets are the configured file groups, including the local default goal.
 
 The former calls the latter recursively for each workspace.
+
+#### GPU vs CPU parallelism
+
+When executing workflows in parallel (with `--jobs`) on multiple CPUs, it must be ensured that not too many processors are running at any time which use GPU resources. Thus, make needs to know:
+1. which processors (have/want to) share GPU resources, and
+2. how many such processors can run in parallel.
+
+It can then synchronize these processors with a semaphore. This is achieved by expanding the static pattern rule with a synchronisation mechanism (based on GNU parallel). Workflow configurations can use that by setting the target-specific variable `GPU` to a non-empty value for the respective rules. (Custom recipes will have to use `sem --id OCR-D-GPUSEM`.)

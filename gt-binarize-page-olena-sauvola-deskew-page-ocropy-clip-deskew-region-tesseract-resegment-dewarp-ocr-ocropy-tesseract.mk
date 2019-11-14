@@ -44,7 +44,7 @@ DESK2 = $(CLIP)-DESKEW-tesseract
 
 $(DESK2): $(CLIP)
 $(DESK2): TOOL = ocrd-tesserocr-deskew
-$(DESK2): PARAMS = "operation_level": "region"
+$(DESK2): PARAMS = "operation_level": "region", "min_orientation_confidence": 1.5
 
 RESEG = $(DESK2)-RESEG
 
@@ -79,6 +79,7 @@ $(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" 
 $(OCR7): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "GT4HistOCR_2000000+GT4HistOCR_300000+GT4HistOCR_100000"
 
 $(OCR8): TOOL = ocrd-calamari-recognize
+$(OCR8): GPU = 1
 $(OCR8): PARAMS = "checkpoint" : "$(VIRTUAL_ENV)/share/calamari/GT4HistOCR/*.ckpt.json"
 
 OUTPUT = $(DEW)-OCR
