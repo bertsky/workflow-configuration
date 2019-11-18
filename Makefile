@@ -1,15 +1,30 @@
-# Install by copying (or symlinking) makefiles into a directory
-# where all OCR-D workspaces (unpacked BagIts) reside. Then
-# chdir to that location.
-
+# OCR-D workflow configuration main makefile
+# 
 # Call via:
-# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
-# `make -f WORKFLOW-CONFIG.mk all` or just
-# `make -f WORKFLOW-CONFIG.mk`
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk all` or just
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk`
+# (where DATA-PATH is a directory where your OCR-D workspaces,
+#  i.e. unpacked BagIts, reside).
+#
 # To rebuild partially, you must pass -W to recursive make:
 # `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
+#
+# To build in parallel, use `-j [CPUS] [-l [LOADLEVEL]]`.
+#
+# If you copy (or symlink) all makefiles into DATA-PATH and
+# chdir to that location, you can omit `-C DATA-PATH`.
+#
 # To get help on available goals:
 # `make help`
+
+#
+# For installation via shell-script:
+VIRTUAL_ENV ?= $(CURDIR)/local
+# copy `ocrd-make` here:
+BINDIR = $(abspath $(VIRTUAL_ENV))/bin
+# copy the makefiles here:
+SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
 
 # This file must be included by all specific configuration makefiles.
 
@@ -33,10 +48,105 @@ CONFIGNAME = $(basename $(notdir $(CONFIGURATION)))
 WORKSPACES = $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
-ifeq ($(filter repair,$(MAKECMDGOALS)),)
+ifeq ($(filter help repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 $(error Did you forget to select a workflow configuration makefile?)
 endif
 endif
+
+help:
+	@echo "Running OCR-D workflow configurations on workspaces:"
+	@echo
+	@echo "  Usage:"
+	@echo "  make [OPTIONS] [-C DATA-PATH] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]"
+	@echo "  make [OPTIONS] NEW-CONFIGURATION.mk"
+	@echo
+	@echo "  Targets (general):"
+	@echo "  * help (this message)"
+	@echo "  * deps-ubuntu (install extra system packages needed here, beyond ocrd and processors)"
+	@echo "  * install (copy 'ocrd-make' script and configuration makefiles to"
+	@echo "  *          VIRTUAL_ENV=$(VIRTUAL_ENV))"
+	@echo "  * uninstall (remove 'ocrd-make' script and configuration makefiles from"
+	@echo "  *            VIRTUAL_ENV=$(VIRTUAL_ENV))"
+	@echo
+	@echo "  Targets (data processing):"
+	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
+	@echo "  * info (short self-description of the selected configuration)"
+	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
+	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
+	@echo "  * all (build all of the following workspaces...)"
+	@for workspace in $(WORKSPACES); do echo "  * $$workspace"; done
+	@echo
+	@echo "  Makefiles (i.e. configurations; select via '-f CONFIGURATION.mk')"
+	@echo
+	@for makefile in $(wildcard *.mk); do echo "  * $$makefile"; done
+	@echo
+	@echo "  Variables:"
+	@echo
+	@echo "  * VIRTUAL_ENV: directory prefix to use for installation"
+	@echo "  * EXTRA_MAKEFLAGS: pass these options to recursive make (e.g. -W OCR-D-GT-SEG-LINE)"
+
+.PHONY: help
+
+deps-ubuntu:
+	apt-get -y install parallel xmlstarlet bc sed
+
+install:
+	mkdir -p $(BINDIR) $(SHAREDIR)
+	cp -f Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
+	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < ocrd-make > $(BINDIR)/ocrd-make
+	chmod +x $(BINDIR)/ocrd-make
+
+uninstall:
+	$(RM) $(BINDIR)/ocrd-make
+	$(RM) -r $(SHAREDIR)
+
+.PHONY: deps-ubuntu install uninstall
+
+# spawn a new configuration
+define skeleton =
+# Call via:
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk all` or just
+# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk`
+# (where DATA-PATH is a directory where your OCR-D workspaces,
+#  i.e. unpacked BagIts, reside).
+#
+# To rebuild partially, you must pass -W to recursive make:
+# `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
+#
+# To build in parallel, use `-j [CPUS] [-l [LOADLEVEL]]`.
+#
+# If you copy (or symlink) all makefiles into DATA-PATH and
+# chdir to that location, you can omit `-C DATA-PATH`.
+#
+# To get help on available goals:
+# `make help`
+
+###
+# From here on, custom configuration begins.
+
+INPUT = OCR-D-IMG
+
+OUTPUT = foo
+$$(OUTPUT): $$(INPUT)
+	touch $$@
+
+info:
+	@echo "This is a dummy configuration that creates an empty file $$(OUTPUT)"
+
+.DEFAULT_GOAL = $$(OUTPUT)
+
+# Down here, custom configuration ends.
+###
+
+include Makefile
+endef
+
+export skeleton
+
+%.mk:
+	@echo >$@ "$$skeleton"
+
 
 ifneq ($(strip $(WORKSPACES)),)
 # we are in the top-level directory
@@ -83,70 +193,8 @@ $(WORKSPACES:%=view/%): view/%: %
 
 .PHONY: view $(WORKSPACES:%=view/%)
 
-help:
-	@echo "Running OCR-D workflow configurations on workspaces:"
-	@echo
-	@echo "  Targets:"
-	@echo "  * help (this message)"
-	@echo "  * info (short self-description of the configuration)"
-	@echo "  * view (clone workspaces, filter current config, prepare for JPageViewer)"
-	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
-	@echo "  * all (build all of the following workspaces)"
-	@for workspace in $(WORKSPACES); do echo "  * $$workspace"; done
-	@echo
-	@echo "  Makefiles:"
-	@echo "  (Any specific workflow configuration makefiles that live here (*.mk)."
-	@echo "   Select a configuration via '-f makefile'.)"
-	@echo
-	@for makefile in $(wildcard *.mk); do echo "  * $$makefile"; done
-	@echo
-	@echo "  Variables:"
-	@echo
-	@echo "  * EXTRA_MAKEFLAGS: pass these options to recursive make (e.g. -W OCR-D-GT-SEG-LINE)"
-
-.PHONY: help
-
-# spawn a new configuration
-define skeleton =
-# Install by copying (or symlinking) makefiles into a directory
-# where all OCR-D workspaces (unpacked BagIts) reside. Then
-# chdir to that location.
-
-# Call via:
-# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
-# `make -f WORKFLOW-CONFIG.mk all` or just
-# `make -f WORKFLOW-CONFIG.mk`
-# To rebuild partially, you must pass -W to recursive make:
-# `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
-# To get help on available goals:
-# `make help`
-
-###
-# From here on, custom configuration begins.
-
-INPUT = OCR-D-IMG
-
-OUTPUT = foo
-$$(OUTPUT): $$(INPUT)
-	touch $$@
-
-info:
-	@echo "This is a dummy configuration that creates an empty file $$(OUTPUT)"
-
-.DEFAULT_GOAL = $$(OUTPUT)
-
-# Down here, custom configuration ends.
-###
-
-include Makefile
-endef
-
-export skeleton
-
-%.mk:
-	@echo >$@ "$$skeleton"
-
 else
+ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # we are inside workspace during recursive make
 
 # All operations use the normal date stamping to determine
@@ -257,6 +305,7 @@ endif
 # (because that would require FS synchronization on the METS,
 # and would make multi-output recipes harder to write):
 .NOTPARALLEL:
+endif
 endif
 
 # do not search for implicit rules here:

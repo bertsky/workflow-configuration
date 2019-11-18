@@ -14,41 +14,96 @@ Nevertheless, there are also some _disadvantages_:
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
 
+### Dependencies
+
+To install system dependencies for this package, run...
+```bash
+make deps-ubuntu
+```
+
+...in a priviledged context for Ubuntu (like a Docker container).
+
+Or equivalently, install the following packages:
+- `parallel` (GNU parallel)
+- `xmlstarlet`
+- `bc` and `sed`
+
+Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See:
+- [pilot setup guide](https://ocr-d.github.io/docs/setup-2019-10-27) for manual setup instructions
+- [ocrd_all](https://github.com/stweil/ocrd_all) for an automated solution
+
+
 ### Installation
 
-Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the target directory. (The target directory is the one where the OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
+You have 2 options, depending on your usage preferences:
 
-Of course, [OCR-D core](https://github.com/OCR-D/core) itself must be installed along with its dependencies in the current environment. Moreover, depending on the actual configuration (the processors it contains), additional modules must be installed. Ideally, the configuration itself offers a target `install` which would cover all that.
+#### For direct invocation of make
+
+No installation is required. You can run workflows by calling...
+```bash
+make [OPTIONS] -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACES...
+```
+
+...where
+- _OPTIONS_ are the usual options controlling GNU make (e.g. `-j` for parallel processing).
+- _DATA-PATH_ is the directory where your OCR workspace directories can be found. (A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
+- _WORKFLOW_CONFIG.mk_ is one of the configuration makefiles you find here.
+- _WORKSPACES_ is a list of workspace directories, or `all` (the default) for all workspaces make can find.
+
+If you don't want to pass `-C` each time, you can simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to _DATA-PATH_ and chdir there.
+
+#### For invocation via shell script
+
+Run...
+```bash
+make install
+```
+
+... if you are in a (Python) virtual environment. Otherwise specify the installation prefix directory via environment variable `VIRTUAL_ENV`.
+
+If `$VIRTUAL_ENV/bin` is in your `PATH`, then you can now call...
+```bash
+ocrd-make [OPTIONS] -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACES...
+```
+
+... with the same interface as above.
+
 
 ### Usage
 
-To run:
-1. Activate working environment (virtualenv) and change to the target directory.
-2. Choose (or create) a workflow configuration makefile. (Yes, you should have to look inside and browse its rules!)
+Workflows are processed like software builds: File groups are the targets to be built in each workspace (depending on one anther), and all workspaces are built recursively.
+
+To run a configuration (i.e. ensure its targets exist and are up-to-date)...
+1. Activate working environment (virtualenv) and change to the data directory.
+2. Choose (or create) a workflow configuration makefile. (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
 ```bash
-make -f CONFIGURATION.mk
+[ocrd-]make -f CONFIGURATION.mk [all]
 ```
 
-You can also run on a subset of workspaces by giving these as command line targets:
+You can also run on a subset of workspaces by giving these as command line targets...
 3. Execute:
 ```bash
-make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
+[ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 ```
 
-To clone and bag/zip each workspace including only the results of the chosen configuration, and optimise it for JPageViewer: `make -f CONFIGURATION.mk view`
+To (run a configuration and) clone only the workspace's results for the chosen configuration, and optimise it for JPageViewer...
+3. Execute:
+```bash
+[ocrd-]make -f CONFIGURATION.mk view
+```
 
-To get help: `make help`
+To get help: `[ocrd-]make help`
 
-To get a short description of the chosen configuration: `make CONFIGURATION.mk info`
+To get a short description of the chosen configuration: `[ocrd-]make CONFIGURATION.mk info`
 
-To prepare workspaces for processing by fixing certain flaws that kept happening during publication: `make repair`
+To prepare workspaces for processing by fixing certain flaws that kept happening during publication: `[ocrd-]make repair`
 
-To spawn a new configuration file: `make NEW-CONFIGURATION.mk`
+To spawn a new configuration file: `[ocrd-]make NEW-CONFIGURATION.mk`
 
 ### Customisation
 
-To write new configurations, first choose a sufficiently (descriptive) makefile name, and spawn a new file for that: `make NEW-CONFIGURATION.mk`.
+To write new configurations, first choose a sufficiently (descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk`.
 
 Next, edit the file to your needs: Write rules using file groups as prerequisites/targets in the normal GNU make syntax. The first target defined must be the default goal that builds the very last file group for that configuration, or else a variable `.DEFAULT_GOAL` pointing to that target must be set anywhere in the makefile.
 

@@ -1,0 +1,26 @@
+#!/bin/bash
+
+SHAREDIR=$(realpath $(dirname "$0"))
+
+function process {
+    (
+        CURDIR=$(realpath "$PWD")
+        cd "$SHAREDIR"
+        make -C "$CURDIR" "$@"
+    )
+}
+
+
+case ${1:--h} in
+    -h|-[-]help|help)
+        cat <<EOF
+  (This will merely delegate to \`make\` on the current working directory "$PWD"
+  from the installation directory "$SHAREDIR":)
+
+EOF
+        process --no-print-directory help | sed "s/^  make /  $(basename $0) /"
+        exit
+        ;;
+esac
+
+process "$@"
