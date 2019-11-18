@@ -1,19 +1,18 @@
 # OCR-D workflow configuration main makefile
-# 
+#
+# Install by copying (or symlinking) makefiles into a directory
+# where all OCR-D workspaces (unpacked BagIts) reside. Then
+# chdir to that location.
+#
 # Call via:
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk all` or just
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk`
-# (where DATA-PATH is a directory where your OCR-D workspaces,
-#  i.e. unpacked BagIts, reside).
+# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
+# `make -f WORKFLOW-CONFIG.mk all` or just
+# `make -f WORKFLOW-CONFIG.mk`
 #
 # To rebuild partially, you must pass -W to recursive make:
 # `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
 #
 # To build in parallel, use `-j [CPUS] [-l [LOADLEVEL]]`.
-#
-# If you copy (or symlink) all makefiles into DATA-PATH and
-# chdir to that location, you can omit `-C DATA-PATH`.
 #
 # To get help on available goals:
 # `make help`
@@ -57,7 +56,7 @@ help:
 	@echo "Running OCR-D workflow configurations on workspaces:"
 	@echo
 	@echo "  Usage:"
-	@echo "  make [OPTIONS] [-C DATA-PATH] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]"
+	@echo "  make [OPTIONS] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]"
 	@echo "  make [OPTIONS] NEW-CONFIGURATION.mk"
 	@echo
 	@echo "  Targets (general):"
@@ -104,20 +103,19 @@ uninstall:
 
 # spawn a new configuration
 define skeleton =
+# Install by copying (or symlinking) makefiles into a directory
+# where all OCR-D workspaces (unpacked BagIts) reside. Then
+# chdir to that location.
+# 
 # Call via:
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk all` or just
-# `make -C DATA-PATH -f WORKFLOW-CONFIG.mk`
-# (where DATA-PATH is a directory where your OCR-D workspaces,
-#  i.e. unpacked BagIts, reside).
+# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
+# `make -f WORKFLOW-CONFIG.mk all` or just
+# `make -f WORKFLOW-CONFIG.mk`
 #
 # To rebuild partially, you must pass -W to recursive make:
 # `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
 #
 # To build in parallel, use `-j [CPUS] [-l [LOADLEVEL]]`.
-#
-# If you copy (or symlink) all makefiles into DATA-PATH and
-# chdir to that location, you can omit `-C DATA-PATH`.
 #
 # To get help on available goals:
 # `make help`

@@ -14,6 +14,8 @@ Nevertheless, there are also some _disadvantages_:
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
 
+{:toc}
+
 ### Dependencies
 
 To install system dependencies for this package, run...
@@ -39,18 +41,17 @@ You have 2 options, depending on your usage preferences:
 
 #### For direct invocation of make
 
-No installation is required. You can run workflows by calling...
+Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the __target directory__. (The target directory is the directory where your OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
+
+You can then run workflows in the target directory by calling...
 ```bash
-make [OPTIONS] -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACES...
+make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
 ```
 
 ...where
 - _OPTIONS_ are the usual options controlling GNU make (e.g. `-j` for parallel processing).
-- _DATA-PATH_ is the directory where your OCR workspace directories can be found. (A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
 - _WORKFLOW_CONFIG.mk_ is one of the configuration makefiles you find here.
 - _WORKSPACES_ is a list of workspace directories, or `all` (the default) for all workspaces make can find.
-
-If you don't want to pass `-C` each time, you can simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to _DATA-PATH_ and chdir there.
 
 #### For invocation via shell script
 
@@ -63,15 +64,15 @@ make install
 
 If `$VIRTUAL_ENV/bin` is in your `PATH`, then you can now call...
 ```bash
-ocrd-make [OPTIONS] -C DATA-PATH -f WORKFLOW-CONFIG.mk WORKSPACES...
+ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
 ```
 
-... with the same interface as above.
+... in the target directory with the same interface as above.
 
 
 ### Usage
 
-Workflows are processed like software builds: File groups are the targets to be built in each workspace (depending on one anther), and all workspaces are built recursively.
+Workflows are processed like software builds: File groups are the targets to be built in each workspace (depending on one another), and all workspaces are built recursively.
 
 To run a configuration (i.e. ensure its targets exist and are up-to-date)...
 1. Activate working environment (virtualenv) and change to the data directory.
