@@ -12,6 +12,11 @@ EOF
     exit
 fi
 
+function add_file {
+    echo >&2 "INFO: adding -G $1 -m $2 -g $3 -i $4 $5"
+    ocrd workspace add -G $1 -m $2 -g $3 -i "$4" "$5"
+}
+
 set -e
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
@@ -29,7 +34,7 @@ cd "$1"
 # avoid damaging/replacing existing workspaces:
 ocrd workspace init .
 num=0 zeros=0000
-for file in $(find . -type f); do
+for file in $(find . -type f -not -name mets.xml | sort); do
     let num++
     page=${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -48,10 +53,24 @@ for file in $(find . -type f); do
             exit 1
         fi
     elif test -z "$mimetype"; then
-        if convert "$file" "${base}.tif"; then
-            echo >&2 "WARNING: converted '$file' to ${base}.tif' prior to import"
-            file="${base}.tif"
+        if convert "$file" "${base}.%04d.tif"; then
             mimetype=image/tiff
+            IFS=$'\n'
+            files=($(find . -name "${base}.[0-9]*.tif" | sort))
+            IFS=$' \t\n'
+            echo >&2 "WARNING: converted '$file' to ${base}.*.tif' (${#files[*]} files) prior to import"
+            if ((${#files[*]}>1)); then
+                for file in "${files[@]}"; do
+                    file="${file#./}"
+                    base="${file%.tif}"
+                    add_file $group $mimetype $page.${base:(-4)} "$base" "$file"
+                done
+                # there's no danger of clashes with other files here
+                continue
+            else
+                file="${files[0]}"
+                file="${file#./}"
+            fi
         else
             echo >&2 "ERROR: unknown type of file '$file'"
             exit 1
@@ -81,8 +100,7 @@ for file in $(find . -type f); do
         fi
     done
     # finally, add the file to the METS
-    echo "add -G $group -m $mimetype -i $base -g $page $file"
-    ocrd workspace add -G $group -i "$base" -m $mimetype -g $page "$file"
+    add_file $group $mimetype $page "$base" "$file"
 done
 ) || {
     rm "$1"/mets.xml
