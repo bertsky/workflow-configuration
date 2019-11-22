@@ -1,16 +1,39 @@
 #!/bin/bash
 
-if (($#>1)) || test "$1" = -h -o "$1" = --help; then
-    cat <<EOF
-usage: $0 [DIRECTORY]
+ignore=0
+convert=1
+while (($#)); do
+    case "${1:--h}" in
+        -h|-[-]help)
+            cat <<EOF
+Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 
-Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing:
-- all image files (with known file extension or convertible via ImageMagick) under file group OCR-D-IMG
-- all .xml files (if they validate as PAGE-XML) under OCR-D-SEG-PAGE
-but failing otherwise.
+with options:
+ -i|--ignore      keep going after unknown file types
+ -C|--no-convert  do not attempt to convert image file types
+
+Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing...
+* all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
+* all .xml files (if they validate as PAGE-XML) under fileGrp OCR-D-SEG-PAGE
+...but failing otherwise.
 EOF
-    exit
-fi
+            exit
+            ;;
+        -i|--ignore)
+            ignore=1
+            shift
+            ;;
+        -C|--no-convert)
+            convert=0
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+(($#>1)) && echo >&2 "WARNING: non-first argument(s) will be ignored: '${@:2}'"
 
 function add_file {
     echo >&2 "INFO: adding -G $1 -m $2 -g $3 -i $4 $5"
@@ -49,12 +72,15 @@ for file in $(find . -type f -not -name mets.xml | sort); do
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
            && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
+        elif (($ignore)); then
+            echo >&2 "WARNING: unknown type of file '$file'"
+            continue
         else
             echo >&2 "ERROR: unknown type of file '$file'"
             exit 1
         fi
     elif test -z "$mimetype"; then
-        if convert "$file" "${base}.%04d.tif"; then
+        if (($convert)) && convert "$file" "${base}.%04d.tif"; then
             mimetype=image/tiff
             IFS=$'\n'
             files=($(find . -name "${base}.[0-9]*.tif" | sort))
@@ -72,6 +98,9 @@ for file in $(find . -type f -not -name mets.xml | sort); do
                 file="${files[0]}"
                 file="${file#./}"
             fi
+        elif (($ignore)); then
+            echo >&2 "WARNING: unknown type of file '$file'"
+            continue
         else
             echo >&2 "ERROR: unknown type of file '$file'"
             exit 1
