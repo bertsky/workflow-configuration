@@ -100,6 +100,8 @@ To get a short description of the chosen configuration: `[ocrd-]make CONFIGURATI
 
 To prepare workspaces for processing by fixing certain flaws that kept happening during publication: `[ocrd-]make repair`
 
+To create workspaces from (flat) directories with image files: `ocrd-import DIRECTORY`
+
 To spawn a new configuration file: `[ocrd-]make NEW-CONFIGURATION.mk`
 
 ### Customisation

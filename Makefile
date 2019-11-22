@@ -93,7 +93,8 @@ install:
 	mkdir -p $(BINDIR) $(SHAREDIR)
 	cp -f Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < ocrd-make > $(BINDIR)/ocrd-make
-	chmod +x $(BINDIR)/ocrd-make
+	cp -f ocrd-import $(BINDIR)
+	chmod +x $(BINDIR)/ocrd-make $(BINDIR)/ocrd-import
 
 uninstall:
 	$(RM) $(BINDIR)/ocrd-make

@@ -1,0 +1,91 @@
+#!/bin/bash
+
+if (($#>1)) || test "$1" = -h -o "$1" = --help; then
+    cat <<EOF
+usage: $0 [DIRECTORY]
+
+Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing:
+- all image files (with known file extension or convertible via ImageMagick) under file group OCR-D-IMG
+- all .xml files (if they validate as PAGE-XML) under OCR-D-SEG-PAGE
+but failing otherwise.
+EOF
+    exit
+fi
+
+set -e
+declare -A MIMETYPES
+eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
+MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
+test -d "${1:=.}"
+
+if test -f "$1"/mets.xml || test -d "$1"/data -a -f "$1"/data/mets.xml; then
+    echo >&2 "ERROR: Directory '$1' already is a workspace"
+    exit 1
+fi
+
+# sub-shell to back-off from mets.xml and subdir in case of failure:
+(
+cd "$1"
+# avoid damaging/replacing existing workspaces:
+ocrd workspace init .
+num=0 zeros=0000
+for file in $(find . -type f); do
+    let num++
+    page=${zeros:0:$((4-${#num}))}$num
+    group=OCR-D-IMG
+    file="${file#./}"
+    # guess MIME type
+    name="$(basename "$file")"
+    suffix=."${name##*.}"
+    base=${name%$suffix}
+    mimetype=${MIMETYPES[$suffix]}
+    if test "x$mimetype" = x${MIMETYPE_PAGE}; then
+        # FIXME should really validate this is PAGE-XML (cf. core#353)
+        if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file"; then
+            group=OCR-D-SEG-PAGE
+        else
+            echo >&2 "ERROR: unknown type of file '$file'"
+            exit 1
+        fi
+    elif test -z "$mimetype"; then
+        if convert "$file" "${base}.tif"; then
+            echo >&2 "WARNING: converted '$file' to ${base}.tif' prior to import"
+            file="${base}.tif"
+            mimetype=image/tiff
+        else
+            echo >&2 "ERROR: unknown type of file '$file'"
+            exit 1
+        fi
+    fi
+    IFS=$'\n'
+    clashes=($(ocrd workspace find -i $base -k local_filename -k mimetype -k pageId))
+    IFS=$' \t\n'
+    n=0
+    for clash in "${clashes[@]}"; do
+        let n++
+        IFS=$'\t'
+        fields=($clash)
+        IFS=$' \t\n'
+        # if image, allow PAGE with matching basename
+        # if PAGE, allow image with matching basename
+        if if test $group = OCR-D-IMG; then
+               test -a x${fields[1]} = x${MIMETYPE_PAGE}
+           else [[ "${fields[1]}" =~ image/ ]]
+           fi; then
+            # use existing pageId
+            page=${fields[2]}
+            # use new file ID
+            base="$file" # (including suffix)
+        else
+            echo >&2 "WARNING: files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
+        fi
+    done
+    # finally, add the file to the METS
+    echo "add -G $group -m $mimetype -i $base -g $page $file"
+    ocrd workspace add -G $group -i "$base" -m $mimetype -g $page "$file"
+done
+) || {
+    rm "$1"/mets.xml
+    exit 2
+}
+
