@@ -46,7 +46,8 @@ for file in $(find . -type f -not -name mets.xml | sort); do
     mimetype=${MIMETYPES[$suffix]}
     if test "x$mimetype" = x${MIMETYPE_PAGE}; then
         # FIXME should really validate this is PAGE-XML (cf. core#353)
-        if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file"; then
+        if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
+           && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
         else
             echo >&2 "ERROR: unknown type of file '$file'"
