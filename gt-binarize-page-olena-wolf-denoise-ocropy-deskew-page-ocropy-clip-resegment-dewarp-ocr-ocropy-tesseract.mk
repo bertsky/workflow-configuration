@@ -84,17 +84,12 @@ $(OCR8): PARAMS = "checkpoint" : "$(VIRTUAL_ENV)/share/calamari/GT4HistOCR/*.ckp
 
 OUTPUT = $(DEW)-OCR
 
-$(OUTPUT): $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8)
-# must be last to become first:
-$(OUTPUT): $(INPUT)
-	ocrd-cor-asv-ann-evaluate -I $(call concatcomma,$^)
+$(OUTPUT): $(INPUT) $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8)
+$(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
 
 .DEFAULT_GOAL = $(OUTPUT)
 
 .PHONY: $(OUTPUT)
-
-comma = ,
-concatcomma = $(subst $() $(),$(comma),$(1))
 
 # Down here, custom configuration ends.
 ###

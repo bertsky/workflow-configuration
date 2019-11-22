@@ -116,9 +116,6 @@ $(OUTPUT): $(LINES)
 
 .PHONY: $(OUTPUT)
 
-comma = ,
-concatcomma = $(subst $() $(),$(comma),$(1))
-
 # Down here, custom configuration ends.
 ###
 

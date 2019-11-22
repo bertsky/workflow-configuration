@@ -219,9 +219,11 @@ TOOL =
 GPU =
 PARAMS =
 
+space = $() $()
+comma = ,
 define toolrecipe =
-$(TOOL) -I $< -O $@ -p $@.json 2>&1 | tee $@.log && \
-	touch $@ || { \
+$(TOOL) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
+	touch -c $@ || { \
 	rm -fr $@.json $@; exit 1; }
 endef
 # Extra recipe to control allocation of GPU resources

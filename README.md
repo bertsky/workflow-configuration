@@ -148,11 +148,10 @@ $(OCR): PARAMS = "textequiv_level": "glyph", "overwrite_words": true, "model": "
 
 OUTPUT = EVAL
 
-# This needs a non-standard recipe, because it uses
-# more than 1 input file group and no output file group:
-$(OUTPUT): $(OCR)
-$(OUTPUT): $(INPUT)
-	ocrd-cor-asv-ann-evaluate -I $(call concatcomma,$^)
+# This uses more than 1 input file group and no output file group,
+# which works with the standard recipe as well:
+$(OUTPUT): $(INPUT) $(OCR)
+$(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
 
 # Because no file group (directory) is created,
 # we have to declare this target as phony:
@@ -161,9 +160,6 @@ $(OUTPUT): $(INPUT)
 # Because the first target in this file was $(BIN),
 # we must override the default goal to be our desired target:
 .DEFAULT_GOAL = $(OUTPUT)
-
-comma = ,
-concatcomma = $(subst $() $(),$(comma),$(1))
 
 # Always necessary:
 include Makefile
