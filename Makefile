@@ -186,9 +186,9 @@ $(WORKSPACES:%=view/%): view/%: %
 	ocrd workspace -d $< prune-files
 # bag, but do no zip yet (because we must still filter and path prefixing and filename suffixing):
 	ocrd -l WARN zip bag -d $< -i $(@:%/data=%) -Z $(@:%/data=%)
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) view
+	$(MAKE) -R -C $(@:%/data=%)/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) view
 # bag again and zip:
-	ocrd -l WARN zip bag -d $@ -i $(@:%/data=%) $(@:%/data=%).zip
+	ocrd -l WARN zip bag -d $(@:%/data=%)/data -i $(@:%/data=%) $(@:%/data=%).zip
 
 .PHONY: view $(WORKSPACES:%=view/%)
 
