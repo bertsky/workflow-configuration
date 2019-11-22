@@ -88,7 +88,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
         # if image, allow PAGE with matching basename
         # if PAGE, allow image with matching basename
         if if test $group = OCR-D-IMG; then
-               test -a x${fields[1]} = x${MIMETYPE_PAGE}
+               test "x${fields[1]}" = x${MIMETYPE_PAGE}
            else [[ "${fields[1]}" =~ image/ ]]
            fi; then
             # use existing pageId
