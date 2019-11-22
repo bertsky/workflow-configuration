@@ -281,22 +281,22 @@ repair:
 # repair badly published workspaces:
 # fix MIME type of PAGE-XML files:
 	sed -i 's|MIMETYPE="image/jpeg" ID="OCR-D-GT|MIMETYPE="application/vnd.prima.page+xml" ID="OCR-D-GT|' mets.xml
-ifeq ($(findstring 1000pages,$(CURDIR)),)
 # fix imageFilename (relative to METS, not to PAGE)
 	for file in $$(ocrd workspace find -m application/vnd.prima.page+xml -k local_filename); do \
 		test -f $$file || continue; \
 		sed -i 's|imageFilename="../|imageFilename="|' $$file; \
 	done
-else
 # fix imageFilename (find PAGE filename in METS, find image filename via same pageId in METS):
 	for page in $$(ocrd workspace find -k pageId | sort -u); do \
 		img=$$(ocrd workspace find -G OCR-D-IMG -g $$page -k local_filename); \
+		test -f $$img || continue; \
 		for file in $$(ocrd workspace find -m application/vnd.prima.page+xml -g $$page -k local_filename); do \
 			test -f $$file || continue; \
-			sed -i "s|imageFilename=\"[^\"]*\"|imageFilename=\"$$img\"|" $$file; \
+			img0=$$(sed -n "s|^.*imageFilename=\"\([^\"]*\)\".*$$|\1|p" $$file); \
+			test -f $$img0 && continue; \
+			sed -i "s|imageFilename=\"$$img0\"|imageFilename=\"$$img\"|" $$file; \
 		done; \
 	done
-endif
 
 .PHONY: view repair info
 
