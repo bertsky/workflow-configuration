@@ -77,8 +77,6 @@ $(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
 
 .DEFAULT_GOAL = $(OUTPUT)
 
-.PHONY: $(OUTPUT)
-
 # Down here, custom configuration ends.
 ###
 
