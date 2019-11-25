@@ -151,6 +151,12 @@ ifneq ($(strip $(WORKSPACES)),)
 # we are in the top-level directory
 .DEFAULT_GOAL = all # overwrite configuration's default for workspaces
 
+# suppress built-in pattern rules (we are not compiling source code):
+.SUFFIXES:
+
+# short-hand for workspace targets written with trailing slash:
+$(WORKSPACES:%=%/): %/: %
+
 all: $(WORKSPACES)
 	@cat $(patsubst %,%.$(CONFIGNAME).log,$(WORKSPACES)) > _all.$(CONFIGNAME).log
 	@cat _all.$(CONFIGNAME).log | sed -ne 's|^.* CER overall / [A-Za-z+_0-9-]* vs \([^:]*\): \([0-9.]*\)$$|\1 \2|p' | { \
