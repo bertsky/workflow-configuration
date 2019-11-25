@@ -6,7 +6,7 @@ function process {
     (
         CURDIR=$(realpath "$PWD")
         cd "$SHAREDIR"
-        ln -t "$CURDIR" -fs "$SHAREDIR"/{*.mk,Makefile}
+        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile}
         make -C "$CURDIR" "$@"
     )
 }

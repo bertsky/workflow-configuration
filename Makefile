@@ -91,9 +91,9 @@ deps-ubuntu:
 
 install:
 	mkdir -p $(BINDIR) $(SHAREDIR)
-	cp -f Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
+	cp -Lf Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < ocrd-make > $(BINDIR)/ocrd-make
-	cp -f ocrd-import $(BINDIR)
+	cp -Lf ocrd-import $(BINDIR)
 	chmod +x $(BINDIR)/ocrd-make $(BINDIR)/ocrd-import
 
 uninstall:
