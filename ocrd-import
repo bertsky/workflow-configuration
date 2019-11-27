@@ -67,7 +67,7 @@ cd "$1"
 mkdir -p OCR-D-IMG
 ocrd workspace init .
 num=0 zeros=0000
-for file in $(find . -type f -not -name mets.xml | sort); do
+find . -type f -not -name mets.xml | sort | while read file; do
     let num++
     page=${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -76,6 +76,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
     name="$(basename "$file")"
     suffix=."${name##*.}"
     base="${name%$suffix}"
+    base="${base// /_}"
     mimetype=${MIMETYPES[$suffix]}
     if test "x$mimetype" = x${MIMETYPE_PAGE}; then
         # FIXME should really validate this is PAGE-XML (cf. core#353)
@@ -100,6 +101,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
                 for file in "${files[@]}"; do
                     file="${file#./}"
                     base="${file%.tif}"
+                    base="${base#OCR-D-IMG/}"
                     add_file $group $mimetype $page.${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
@@ -117,7 +119,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
         fi
     fi
     IFS=$'\n'
-    clashes=($(ocrd workspace find -i $base -k local_filename -k mimetype -k pageId))
+    clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
     IFS=$' \t\n'
     n=0
     for clash in "${clashes[@]}"; do
@@ -135,6 +137,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
             page=${fields[2]}
             # use new file ID
             base="$(basename "$file")" # (including suffix)
+            base="${base// /_}"
         else
             warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
         fi
