@@ -36,26 +36,16 @@ done
 function log {
     echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
 }
-function critical {
-    LEVEL=CRITICAL log "$1"
-}
-function error {
-    LEVEL=ERROR log "$1"
-}
-function warning {
-    LEVEL=WARNING log "$1"
-}
-function info {
-    LEVEL=INFO log "$1"
-}
-function debug {
-    LEVEL=DEBUG log "$1"
-}
+function critical { LEVEL=CRITICAL log "$1"; }
+function error { LEVEL=ERROR log "$1"; }
+function warning { LEVEL=WARNING log "$1"; }
+function info { LEVEL=INFO log "$1"; }
+function debug { LEVEL=DEBUG log "$1"; }
 
 (($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
 
 function add_file {
-    info "adding -G $1 -m $2 -g $3 -i $4 $5"
+    info "adding -G $1 -m $2 -g $3 -i $4 '$5'"
     ocrd workspace add -G $1 -m $2 -g $3 -i "$4" "$5"
 }
 
@@ -65,6 +55,7 @@ eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
 test -d "${1:=.}"
 
+# avoid damaging/replacing existing workspaces:
 if test -f "$1"/mets.xml || test -d "$1"/data -a -f "$1"/data/mets.xml; then
     error "Directory '$1' already is a workspace"
     exit 1
@@ -73,7 +64,7 @@ fi
 # sub-shell to back-off from mets.xml and subdir in case of failure:
 (
 cd "$1"
-# avoid damaging/replacing existing workspaces:
+mkdir -p OCR-D-IMG
 ocrd workspace init .
 num=0 zeros=0000
 for file in $(find . -type f -not -name mets.xml | sort); do
@@ -84,7 +75,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
-    base=${name%$suffix}
+    base="${name%$suffix}"
     mimetype=${MIMETYPES[$suffix]}
     if test "x$mimetype" = x${MIMETYPE_PAGE}; then
         # FIXME should really validate this is PAGE-XML (cf. core#353)
@@ -99,12 +90,12 @@ for file in $(find . -type f -not -name mets.xml | sort); do
             exit 1
         fi
     elif test -z "$mimetype"; then
-        if (($convert)) && convert "$file" "${base}.%04d.tif"; then
+        if (($convert)) && convert "$file" OCR-D-IMG/"${base}.%04d.tif"; then
             mimetype=image/tiff
             IFS=$'\n'
-            files=($(find . -name "${base}.[0-9]*.tif" | sort))
+            files=($(find OCR-D-IMG -name "${base}.[0-9]*.tif" | sort))
             IFS=$' \t\n'
-            warning "converted '$file' to ${base}.*.tif' (${#files[*]} files) prior to import"
+            warning "converted '$file' to OCR-D-IMG/${base}.*.tif' (${#files[*]} files) prior to import"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
                     file="${file#./}"
@@ -143,7 +134,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
             # use existing pageId
             page=${fields[2]}
             # use new file ID
-            base="$file" # (including suffix)
+            base="$(basename "$file")" # (including suffix)
         else
             warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
         fi
