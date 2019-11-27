@@ -33,10 +33,29 @@ EOF
     esac
 done
 
-(($#>1)) && echo >&2 "WARNING: non-first argument(s) will be ignored: '${@:2}'"
+function log {
+    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
+}
+function critical {
+    LEVEL=CRITICAL log "$1"
+}
+function error {
+    LEVEL=ERROR log "$1"
+}
+function warning {
+    LEVEL=WARNING log "$1"
+}
+function info {
+    LEVEL=INFO log "$1"
+}
+function debug {
+    LEVEL=DEBUG log "$1"
+}
+
+(($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
 
 function add_file {
-    echo >&2 "INFO: adding -G $1 -m $2 -g $3 -i $4 $5"
+    info "adding -G $1 -m $2 -g $3 -i $4 $5"
     ocrd workspace add -G $1 -m $2 -g $3 -i "$4" "$5"
 }
 
@@ -47,7 +66,7 @@ MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
 test -d "${1:=.}"
 
 if test -f "$1"/mets.xml || test -d "$1"/data -a -f "$1"/data/mets.xml; then
-    echo >&2 "ERROR: Directory '$1' already is a workspace"
+    error "Directory '$1' already is a workspace"
     exit 1
 fi
 
@@ -73,10 +92,10 @@ for file in $(find . -type f -not -name mets.xml | sort); do
            && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
         elif (($ignore)); then
-            echo >&2 "WARNING: unknown type of file '$file'"
+            warning "unknown type of file '$file'"
             continue
         else
-            echo >&2 "ERROR: unknown type of file '$file'"
+            error "unknown type of file '$file'"
             exit 1
         fi
     elif test -z "$mimetype"; then
@@ -85,7 +104,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
             IFS=$'\n'
             files=($(find . -name "${base}.[0-9]*.tif" | sort))
             IFS=$' \t\n'
-            echo >&2 "WARNING: converted '$file' to ${base}.*.tif' (${#files[*]} files) prior to import"
+            warning "converted '$file' to ${base}.*.tif' (${#files[*]} files) prior to import"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
                     file="${file#./}"
@@ -99,10 +118,10 @@ for file in $(find . -type f -not -name mets.xml | sort); do
                 file="${file#./}"
             fi
         elif (($ignore)); then
-            echo >&2 "WARNING: unknown type of file '$file'"
+            warning "unknown type of file '$file'"
             continue
         else
-            echo >&2 "ERROR: unknown type of file '$file'"
+            error "unknown type of file '$file'"
             exit 1
         fi
     fi
@@ -126,7 +145,7 @@ for file in $(find . -type f -not -name mets.xml | sort); do
             # use new file ID
             base="$file" # (including suffix)
         else
-            echo >&2 "WARNING: files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
+            warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
         fi
     done
     # finally, add the file to the METS
@@ -134,6 +153,8 @@ for file in $(find . -type f -not -name mets.xml | sort); do
 done
 ) || {
     rm "$1"/mets.xml
+    critical "Cancelled '$1'"
     exit 2
 }
 
+info "Success on '$1'"
