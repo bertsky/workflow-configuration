@@ -1,12 +1,24 @@
 #!/bin/bash
 
+# This script encapsulates calls to `make` in the CWD
+# after copying/symlinking the workflow-configuration
+# makefiles into it. It is meant to be used either:
+# - by calling the script via its full path in the
+#   workflow-configuration installation directory, or
+# - by using PATH after running `make install` in the
+#   workflow-configuration installation directory
+#   (with a suitable choice of VIRTUAL_ENV as prefix).
+# The first will find the makefiles via its `dirname $0`,
+# while the second will find them from the fixed SHAREDIR
+# substituted during `make install`.
+
 SHAREDIR=$(realpath $(dirname "$0"))
 
 function process {
     (
         CURDIR=$(realpath "$PWD")
         cd "$SHAREDIR"
-        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile}
+        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null
         make -C "$CURDIR" "$@"
     )
 }
