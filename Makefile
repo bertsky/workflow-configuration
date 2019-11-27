@@ -204,26 +204,53 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 
 # All operations use the normal date stamping to determine
 # whether they must be updated. This allows the user control
-# over incremental vs. re-builds (`-B` or `-W step`).
+# over incremental vs. re-builds (`-B` or `-W step`) etc.
+# (However, unfortunately, `-W` does not carry across recursive
+#  invocation or appear in MAKEFLAGS, hence the introduction
+#  of EXTRA_MAKEFLAGS.)
+#
 # But we cannot trust the filesystem alone: it might be
 # inconsistent with the METS representation (especially
 # if written partially).
+#
 # So in the recipes, once we know some output is out of date,
-# we must ensure it does not get in the way.
-# As long as the processors have no option --overwrite, we
-# thus must add a remove command everywhere.
+# we must ensure it does not get in the way in the METS.
+# As long as the processors have no option --force/overwrite,
+# we thus must add a remove command everywhere on spec.
 # However, `remove-group -f` does not behave like `rm -f`
 # at the moment, so we have to intercept any errors from it.
+#
 # Likewise, when errors occur during processing, leaving
 # a partial annotation in the workspace, we need to remove
 # all that from the filesystem in order to make way for
 # re-entry. Due to GNU make's #16372, we cannot use builtin
 # .DELETE_ON_ERROR for that.
-# FIXME: Also, this does not cover multiple output filegrps
-# (ignoring them will give side effects!)
-TOOL =
-GPU =
-PARAMS =
+# For the same reason (i.e. poor support for directories as
+# targets), we must update the timestamp of the target when
+# the processor succeeded, because it might not actually
+# create new files (merely overwrite them).
+#
+# Moreover, the default rule must not catch file groups that
+# were never meant to be rebuilt (like image or GT input),
+# but happen to be outdated / inexisting in the file system.
+# We must at least prevent removing/updating file groups which
+# have no preqrequisites at all or no TOOL definition.
+#
+# So overall, the last-resort pattern recipe for processors
+# comprises:
+# 1. line: a check failing the recipe when no TOOL/prereqs were set
+# 2. line: a workspace remove-group simulating force/overwrite
+# 3. line: generating the parameter JSON file
+# 4. line: the actual TOOL execution, with `touch` on success,
+#          and `rm -r` on failure.
+#
+# Further, when processors have more than 1 input file group
+# (i.e. their output target has more than 1 input prerequisite),
+# we must concatenate this space delimited list with the OCR-D
+# comma syntax for multiple file groups.
+#
+# FIXME: However, this does not yet cover multiple output file groups
+# (and ignoring them will give side effects!)
 
 space = $() $()
 comma = ,
@@ -250,7 +277,12 @@ else
 $(warning You risk running into GPU races. Install GNU parallel to synchronize CUDA-enabled processors.)
 endif
 endif
+
+%: TOOL =
+%: GPU =
+%: PARAMS =
 %:
+	@$(if $(and $(TOOL),$<),echo "building $@ from $< with pattern rule for $(TOOL)",$(MAKE) -R -f /dev/null $@)
 	-ocrd workspace remove-group -r $@ 2>/dev/null
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
