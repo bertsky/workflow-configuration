@@ -92,6 +92,7 @@ OUTPUT = $(DEW)-OCR
 
 $(OUTPUT): $(INPUT) $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8)
 $(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
+$(OUTPUT): PARAMS = "metric" : "historic_latin"
 
 .DEFAULT_GOAL = $(OUTPUT)
 
