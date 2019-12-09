@@ -14,7 +14,19 @@ Nevertheless, there are also some _disadvantages_:
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
 
-{:toc}
+Contents:
+ * [Dependencies](#dependencies)
+ * [Installation](#installation)
+    * [For direct invocation of make](#for-direct-invocation-of-make)
+    * [For invocation via shell script](#for-invocation-via-shell-script)
+ * [Usage](#usage)
+ * [Customisation](#customisation)
+    * [Recommendations](#recommendations)
+    * [Example](#example)
+ * [Results](#results)
+    * [OCR-D ground truth](#ocr-d-ground-truth)
+ * [Implementation](#implementation)
+    * [GPU vs CPU parallelism](#gpu-vs-cpu-parallelism)
 
 ### Dependencies
 
@@ -75,7 +87,7 @@ ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
 Workflows are processed like software builds: File groups are the targets to be built in each workspace (depending on one another), and all workspaces are built recursively.
 
 To run a configuration (i.e. ensure its targets exist and are up-to-date)...
-1. Activate working environment (virtualenv) and change to the data directory.
+1. Activate working environment (virtualenv) and change to the target directory.
 2. Choose (or create) a workflow configuration makefile. (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
 ```bash
@@ -116,7 +128,7 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 - Change/customize at least the `info` target, and the `INPUT` and `OUTPUT` name/rule.
 - Copy/paste rules from the existing configurations.
 - Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
-- Try to use the static pattern rule (which takes the target as output file group and the prerequisite as input file group) for most OCR-D CLIs – unless you have more than 1 input or output file group, or your operation does not use an OCR-D CLI – by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever.
+- Try to utilise the provided static pattern rule (which takes the target as output file group and the prerequisite as input file group) for all processing steps. The rule covers any OCR-D compliant processor with no more than 1 output file group. Use it by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever.
 - When your processor uses GPU resources, you must prevent races for GPU memory during parallel execution.
   
   You can achieve this by simply setting `GPU = 1` when using the static pattern rule, or by using `sem --id OCR-D-GPUSEM` in your own recipes.
@@ -149,13 +161,9 @@ $(OCR): PARAMS = "textequiv_level": "glyph", "overwrite_words": true, "model": "
 OUTPUT = EVAL
 
 # This uses more than 1 input file group and no output file group,
-# which works with the standard recipe as well:
+# which works with the standard recipe as well (but mind the ordering):
 $(OUTPUT): $(INPUT) $(OCR)
 $(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
-
-# Because no file group (directory) is created,
-# we have to declare this target as phony:
-.PHONY: $(OUTPUT)
 
 # Because the first target in this file was $(BIN),
 # we must override the default goal to be our desired target:

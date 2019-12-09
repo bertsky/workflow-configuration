@@ -17,6 +17,12 @@
 # To get help on available goals:
 # `make help`
 
+# Alternatively, install permanently by running:
+# `make install`
+# (which will copy the makefiles and shell scripts under the
+#  VIRTUAL_ENV prefix).
+# Afterwards, just use `ocrd-make` (which will do all the symlinking)
+# instead of `make` as above.
 #
 # For installation via shell-script:
 VIRTUAL_ENV ?= $(CURDIR)/local
