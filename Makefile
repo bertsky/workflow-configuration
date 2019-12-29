@@ -50,11 +50,15 @@ CONFIGURATION = $(abspath $(firstword $(MAKEFILE_LIST)))
 CONFIGDIR = $(dir $(CONFIGURATION))
 CONFIGNAME = $(basename $(notdir $(CONFIGURATION)))
 
-WORKSPACES = $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
+WORKSPACES := $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
-ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 ifeq ($(filter help repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 $(error Did you forget to select a workflow configuration makefile?)
+else
+ifeq ($(strip $(WORKSPACES)),)
+WORKSPACES := $(foreach GOAL,$(MAKECMDGOALS),$(patsubst %/mets.xml,%,$(wildcard $(GOAL)/data/mets.xml $(GOAL)/mets.xml)))
+endif
 endif
 endif
 
