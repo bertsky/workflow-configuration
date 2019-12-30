@@ -354,8 +354,10 @@ repair:
 # (because that would require FS synchronization on the METS,
 # and would make multi-output recipes harder to write):
 .NOTPARALLEL:
-endif
-endif
+else # (if not found workspaces and not inside workspace)
+$(error No workspaces in "$(CURDIR)" or among "$(MAKECMDGOALS)")
+endif # (if inside workspace)
+endif # (if found workspaces)
 
 # do not search for implicit rules here:
 Makefile: ;
