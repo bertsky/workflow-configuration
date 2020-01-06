@@ -52,7 +52,7 @@ CONFIGNAME = $(basename $(notdir $(CONFIGURATION)))
 
 WORKSPACES := $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
-ifeq ($(filter help repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 $(error Did you forget to select a workflow configuration makefile?)
 else
@@ -355,7 +355,9 @@ repair:
 # and would make multi-output recipes harder to write):
 .NOTPARALLEL:
 else # (if not found workspaces and not inside workspace)
+ifeq ($(filter help info deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)" or among "$(MAKECMDGOALS)")
+endif # (if pseudo-target)
 endif # (if inside workspace)
 endif # (if found workspaces)
 
