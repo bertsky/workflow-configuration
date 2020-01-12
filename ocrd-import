@@ -1,7 +1,17 @@
 #!/bin/bash
 
+function log {
+    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
+}
+function critical { LEVEL=CRITICAL log "$1"; }
+function error { LEVEL=ERROR log "$1"; }
+function warning { LEVEL=WARNING log "$1"; }
+function info { LEVEL=INFO log "$1"; }
+function debug { LEVEL=DEBUG log "$1"; }
+
 ignore=0
 convert=1
+dpi=300
 while (($#)); do
     case "${1:--h}" in
         -h|-[-]help)
@@ -11,6 +21,7 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 with options:
  -i|--ignore      keep going after unknown file types
  -C|--no-convert  do not attempt to convert image file types
+ -r|--render DPI  when converting PDFs, render at DPI pixel density
 
 Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing...
 * all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
@@ -27,20 +38,20 @@ EOF
             convert=0
             shift
             ;;
+        -r|--render)
+            shift
+            dpi="$1"
+            [[ "$dpi" =~ [0-9]+ ]] || {
+                critical "--render needs a numeric value"
+                exit 2
+            }
+            shift
+            ;;
         *)
             break
             ;;
     esac
 done
-
-function log {
-    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
-}
-function critical { LEVEL=CRITICAL log "$1"; }
-function error { LEVEL=ERROR log "$1"; }
-function warning { LEVEL=WARNING log "$1"; }
-function info { LEVEL=INFO log "$1"; }
-function debug { LEVEL=DEBUG log "$1"; }
 
 (($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
 
@@ -78,7 +89,8 @@ find . -type f -not -name mets.xml | sort | while read file; do
     base="${name%$suffix}"
     base="${base// /_}"
     mimetype=${MIMETYPES[$suffix]}
-    if test "x$mimetype" = x${MIMETYPE_PAGE}; then
+    case "$mimetype" in
+        ${MIMETYPE_PAGE})
         # FIXME should really validate this is PAGE-XML (cf. core#353)
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
            && fgrep -qw 'PcGts' "$file"; then
@@ -90,13 +102,25 @@ find . -type f -not -name mets.xml | sort | while read file; do
             error "unknown type of file '$file'"
             exit 1
         fi
-    elif test -z "$mimetype"; then
-        if (($convert)) && convert "$file" OCR-D-IMG/"${base}.%04d.tif"; then
+        ;;
+        application/pdf|application/postscript|application/oxps|image/x-*|"")
+        case "$suffix" in
+            .pdf|.PDF)
+                inopts=(-density $((2*$dpi)) -units PixelsPerInch)
+                outopts=(-resample $dpi)
+                ;;
+            *)
+                inopts=()
+                outopts=()
+        esac
+        if (($convert)) && \
+               warning "converting '$file' to 'OCR-D-IMG/${base}.*.tif' prior to import" && \
+               convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}.%04d.tif"; then
             mimetype=image/tiff
             IFS=$'\n'
             files=($(find OCR-D-IMG -name "${base}.[0-9]*.tif" | sort))
             IFS=$' \t\n'
-            warning "converted '$file' to OCR-D-IMG/${base}.*.tif' (${#files[*]} files) prior to import"
+            info "converted '$file' to 'OCR-D-IMG/${base}.*.tif' (${#files[*]} files)"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
                     file="${file#./}"
@@ -117,7 +141,8 @@ find . -type f -not -name mets.xml | sort | while read file; do
             error "unknown type of file '$file'"
             exit 1
         fi
-    fi
+        ;;
+    esac
     IFS=$'\n'
     clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
     IFS=$' \t\n'
