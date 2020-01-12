@@ -12,6 +12,7 @@ function debug { LEVEL=DEBUG log "$1"; }
 ignore=0
 convert=1
 dpi=300
+numpageid=1
 while (($#)); do
     case "${1:--h}" in
         -h|-[-]help)
@@ -22,6 +23,7 @@ with options:
  -i|--ignore      keep going after unknown file types
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
+ -P|--nonnum-ids  do not use numeric pageIds but basename patterns
 
 Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing...
 * all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
@@ -45,6 +47,10 @@ EOF
                 critical "--render needs a numeric value"
                 exit 2
             }
+            shift
+            ;;
+        -P|--nonnum-ids)
+            numpageid=0
             shift
             ;;
         *)
@@ -88,6 +94,12 @@ find . -type f -not -name mets.xml | sort | while read file; do
     suffix=."${name##*.}"
     base="${name%$suffix}"
     base="${base// /_}"
+    if !((numpageid)); then
+        page=$base
+        # file ID must contain group, or processors will have to
+        # prevent ID clashes by using numeric IDs
+        base=${group}_"$base"
+    fi
     mimetype=${MIMETYPES[$suffix]}
     case "$mimetype" in
         ${MIMETYPE_PAGE})
