@@ -56,7 +56,6 @@ BLOCK = OCR-D-SEG-BLOCK-tesseract
 
 $(BLOCK): $(DESK)
 $(BLOCK): TOOL = ocrd-tesserocr-segment-region
-$(BLOCK): PARAMS = "operation_level": "region"
 
 CLIP = $(BLOCK)-CLIP
 
