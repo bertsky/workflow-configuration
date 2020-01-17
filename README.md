@@ -112,6 +112,8 @@ To prepare workspaces for processing by fixing certain flaws that kept happening
 
 To create workspaces from (flat) directories with image files: `ocrd-import DIRECTORY`
 
+To get help on its many options: `ocrd-import --help`
+
 To spawn a new configuration file: `[ocrd-]make NEW-CONFIGURATION.mk`
 
 ### Customisation
@@ -139,6 +141,7 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 INPUT = OCR-D-GT-SEG-LINE
 
 $(INPUT):
+	ocrd workspace find -G $@ --download
 	ocrd workspace find -G OCR-D-IMG --download # just in case
 
 # You can re-use file group names to keep the rules brief:
