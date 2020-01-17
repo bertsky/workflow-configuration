@@ -42,9 +42,7 @@ Or equivalently, install the following packages:
 - `xmlstarlet`
 - `bc` and `sed`
 
-Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See:
-- [pilot setup guide](https://ocr-d.github.io/docs/setup-2019-10-27) for manual setup instructions
-- [ocrd_all](https://github.com/stweil/ocrd_all) for an automated solution
+Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See [OCR-D setup guide](https://ocr-d.github.io/docs/setup) for instructions. (Yes, `workflow-configuration` is already part of [ocrd_all](https://github.com/OCR-D/ocrd_all).)
 
 
 ### Installation
@@ -139,6 +137,9 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 
 ```make
 INPUT = OCR-D-GT-SEG-LINE
+
+$(INPUT):
+	ocrd workspace find -G OCR-D-IMG --download # just in case
 
 # You can re-use file group names to keep the rules brief:
 BIN = $(INPUT)-BINPAGE

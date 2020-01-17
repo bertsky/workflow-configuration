@@ -24,6 +24,10 @@ info:
 
 INPUT = OCR-D-GT-SEG-LINE
 
+$(INPUT):
+	ocrd workspace find -G $@ --download
+	ocrd workspace find -G OCR-D-IMG --download # just in case
+
 BIN = $(INPUT)-BINPAGE-sauvola
 
 $(BIN): $(INPUT)

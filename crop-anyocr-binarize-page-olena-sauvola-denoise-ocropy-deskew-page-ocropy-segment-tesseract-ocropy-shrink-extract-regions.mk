@@ -26,6 +26,9 @@ info:
 
 INPUT = OCR-D-IMG
 
+$(INPUT):
+	ocrd workspace find -G $@ --download
+
 CROP = OCR-D-SEG-PAGE-anyocr
 
 $(CROP): $(INPUT)
