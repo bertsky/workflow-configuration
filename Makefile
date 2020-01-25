@@ -296,7 +296,7 @@ endif
 %: PARAMS =
 %:
 	@$(if $(and $(TOOL),$<),echo "building $@ from $< with pattern rule for $(TOOL)",$(MAKE) -R -f /dev/null $@)
-	-ocrd workspace remove-group -r $@ 2>/dev/null
+	ocrd workspace remove-group -r $@ 2>/dev/null || true
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
