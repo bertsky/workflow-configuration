@@ -172,15 +172,21 @@ $(WORKSPACES:%=%/): %/: %
 
 all: $(WORKSPACES)
 	@cat $(patsubst %,%.$(CONFIGNAME).log,$(WORKSPACES)) > _all.$(CONFIGNAME).log
-	@cat _all.$(CONFIGNAME).log | sed -ne 's|^.* CER overall / [A-Za-z+_0-9-]* vs \([^:]*\): \([0-9.]*\)$$|\1 \2|p' | { \
-		declare -A RESULTS COUNTS; \
-		while read OCR RATE; do \
-			RESULTS[$$OCR]="$${RESULTS[$$OCR]:=0}+$$RATE"; \
-			let COUNTS[$$OCR]++; \
+	@cat _all.$(CONFIGNAME).log | sed -ne 's|^.*\([0-9]\+\) lines \([0-9.]\+\)±\([0-9.]\+\) CER overall / [A-Za-z+_0-9-]* vs \(.*\)$$|\4 \1 \2 \3|p' | { \
+		declare -A LENGTHS MEANS VARIAS; \
+		while read OCR LENGTH MEAN VARIA; do \
+			(($$LENGTH)) || continue; \
+			COUNT=$$(($${LENGTHS[$$OCR]:=0}+$$LENGTH)); \
+			DELTA=$$(bc -l <<<"$$MEAN-$${MEANS[$$OCR]:=0}"); \
+			VARIA=$$(bc -l <<<"$$VARIA^2"); \
+			MEANS[$$OCR]=$$(bc -l <<<"($$LENGTH*$$MEAN+$${LENGTHS[$$OCR]}*$${MEANS[$$OCR]:=0})/$$COUNT"); \
+			VARIAS[$$OCR]=$$(bc -l <<<"($$LENGTH*$$VARIA+$${LENGTHS[$$OCR]}*$${VARIAS[$$OCR]:=0}+$$DELTA^2*$$LENGTH*$${LENGTHS[$$OCR]}/$$COUNT)/$$COUNT"); \
+			LENGTHS[$$OCR]=$$COUNT; \
 		done; \
-		for OCR in $${!RESULTS[*]}; do \
-			echo -n "$$OCR: "; \
-			echo "($${RESULTS[$$OCR]})/$${COUNTS[$$OCR]}" | bc -l; \
+		for OCR in $${!LENGTHS[*]}; do \
+			MEAN=$$(bc -l <<<"scale=4; $${MEANS[$$OCR]}"); \
+			VARIA=$$(bc -l <<<"scale=4; sqrt($${VARIAS[$$OCR]})"); \
+			echo "$$OCR: $$MEAN±$$VARIA"; \
 		done; }
 	@echo "all done with $(CONFIGNAME)"
 

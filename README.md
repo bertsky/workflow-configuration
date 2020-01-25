@@ -51,7 +51,9 @@ You have 2 options, depending on your usage preferences:
 
 #### For direct invocation of make
 
-Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the __target directory__. (The target directory is the directory where your OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
+Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the __target directory__.
+
+(The target directory is the directory where your OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
 
 You can then run workflows in the target directory by calling...
 ```bash
@@ -93,32 +95,48 @@ To run a configuration (i.e. ensure its targets exist and are up-to-date)...
 ```
 
 You can also run on a subset of workspaces by giving these as command line targets...
-3. Execute:
 ```bash
 [ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 ```
 
 To (run a configuration and) clone only the workspace's results for the chosen configuration, and optimise it for JPageViewer...
-3. Execute:
 ```bash
 [ocrd-]make -f CONFIGURATION.mk view
 ```
 
-To get help: `[ocrd-]make help`
+To get help:
+```bash
+[ocrd-]make help
+```
 
-To get a short description of the chosen configuration: `[ocrd-]make CONFIGURATION.mk info`
+To get a short description of the chosen configuration:
+```bash
+[ocrd-]make CONFIGURATION.mk info
+```
 
-To prepare workspaces for processing by fixing certain flaws that kept happening during publication: `[ocrd-]make repair`
+To prepare workspaces for processing by fixing certain flaws that kept happening during publication:
+```bash
+[ocrd-]make repair
+```
 
-To create workspaces from (flat) directories with image files: `ocrd-import DIRECTORY`
+To create workspaces from (flat) directories with image files:
+```bash
+ocrd-import DIRECTORY
+```
 
-To get help on its many options: `ocrd-import --help`
+To get help on its many options:
+```bash
+ocrd-import --help
+```
 
-To spawn a new configuration file: `[ocrd-]make NEW-CONFIGURATION.mk`
+To spawn a new configuration file:
+```
+[ocrd-]make NEW-CONFIGURATION.mk
+```
 
 ### Customisation
 
-To write new configurations, first choose a sufficiently (descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk`.
+To write new configurations, first choose a (sufficiently descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk`.
 
 Next, edit the file to your needs: Write rules using file groups as prerequisites/targets in the normal GNU make syntax. The first target defined must be the default goal that builds the very last file group for that configuration, or else a variable `.DEFAULT_GOAL` pointing to that target must be set anywhere in the makefile.
 
@@ -160,7 +178,7 @@ OCR = OCR-D-OCR-TESS
 
 $(OCR): $(BIN)
 $(OCR): TOOL = ocrd-tesserocr-recognize
-$(OCR): PARAMS = "textequiv_level": "glyph", "overwrite_words": true, "model": "frk+deu"
+$(OCR): PARAMS = "textequiv_level": "glyph", "model": "frk+deu"
 
 OUTPUT = EVAL
 
@@ -170,7 +188,7 @@ $(OUTPUT): $(INPUT) $(OCR)
 $(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
 
 # Because the first target in this file was $(BIN),
-# we must override the default goal to be our desired target:
+# we must override the default goal to be our desired overall target:
 .DEFAULT_GOAL = $(OUTPUT)
 
 # Always necessary:
