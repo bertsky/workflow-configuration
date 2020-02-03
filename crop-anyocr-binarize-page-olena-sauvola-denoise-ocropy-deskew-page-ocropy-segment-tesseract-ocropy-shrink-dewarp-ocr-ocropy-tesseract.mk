@@ -106,7 +106,10 @@ $(OCR8): TOOL = ocrd-calamari-recognize
 $(OCR8): GPU = 1
 $(OCR8): PARAMS = "checkpoint" : "$(VIRTUAL_ENV)/share/calamari/GT4HistOCR/*.ckpt.json"
 
-.DEFAULT_GOAL = $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8)
+OUTPUT: $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8) ;
+
+.PHONY: OUTPUT
+.DEFAULT_GOAL = OUTPUT
 
 # Down here, custom configuration ends.
 ###
