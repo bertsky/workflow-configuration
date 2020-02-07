@@ -59,10 +59,17 @@ BLOCK = OCR-D-SEG-BLOCK-tesseract
 
 $(BLOCK): $(DESK)
 $(BLOCK): TOOL = ocrd-tesserocr-segment-region
+$(BLOCK): PARAMS = "padding": 5, "find_tables": false
+
+PLAUSIBLE = $(BLOCK)-plausible
+
+$(PLAUSIBLE): $(BLOCK)
+$(PLAUSIBLE): TOOL = ocrd-segment-repair
+$(PLAUSIBLE): PARAMS = "plausibilize": true, "plausibilize_merge_min_overlap": 0.7
 
 CLIP = $(BLOCK)-CLIP
 
-$(CLIP): $(BLOCK)
+$(CLIP): $(PLAUSIBLE)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
 LINE = OCR-D-SEG-LINE-tesseract-ocropy

@@ -18,8 +18,8 @@ info:
 	@echo "Read GT segmentation (on any level, merely for page frame),"
 	@echo "or if not available, then read image files and crop,"
 	@echo "then binarize+denoise+deskew pages,"
-	@echo "then segment into regions and lines,"
-	@echo "then shrink regions into the hull polygon of its lines,"
+	@echo "then segment into regions with Tesseract and post-process,"
+	@echo "then segment into lines with Ocropy and dewarp,"
 	@echo "and finally recognize lines with various Ocropus+Tesseract models."
 
 INPUT = OCR-D-IMG
@@ -57,10 +57,17 @@ BLOCK = OCR-D-SEG-BLOCK-tesseract
 
 $(BLOCK): $(DESK)
 $(BLOCK): TOOL = ocrd-tesserocr-segment-region
+$(BLOCK): PARAMS = "padding": 5, "find_tables": false
+
+PLAUSIBLE = $(BLOCK)-plausible
+
+$(PLAUSIBLE): $(BLOCK)
+$(PLAUSIBLE): TOOL = ocrd-segment-repair
+$(PLAUSIBLE): PARAMS = "plausibilize": true, "plausibilize_merge_min_overlap": 0.7
 
 CLIP = $(BLOCK)-CLIP
 
-$(CLIP): $(BLOCK)
+$(CLIP): $(PLAUSIBLE)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
 LINE = OCR-D-SEG-LINE-tesseract-ocropy
@@ -69,15 +76,9 @@ $(LINE): $(CLIP)
 $(LINE): TOOL = ocrd-cis-ocropy-segment
 $(LINE): PARAMS = "spread": 2.4
 
-TIGHT = OCR-D-SEG-BLOCK-tesseract-ocropy
+DEW = $(LINE)-DEWARP
 
-$(TIGHT): $(LINE)
-$(TIGHT): TOOL = ocrd-segment-repair
-$(TIGHT): PARAMS = "sanitize": true
-
-DEW = $(TIGHT)-DEWARP
-
-$(DEW): $(TIGHT)
+$(DEW): $(LINE)
 $(DEW): TOOL = ocrd-cis-ocropy-dewarp
 
 OCR1 = OCR-D-OCR-OCRO-fraktur-$(DEW:OCR-D-%=%)
