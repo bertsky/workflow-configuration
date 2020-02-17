@@ -12,11 +12,11 @@
 # while the second will find them from the fixed SHAREDIR
 # substituted during `make install`.
 
-SHAREDIR=$(realpath $(dirname "$0"))
+SHAREDIR=$(cd $(dirname "$0") && pwd)
 
 function process {
     (
-        CURDIR=$(realpath "$PWD")
+        CURDIR="$PWD"
         cd "$SHAREDIR"
         ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null
         make -C "$CURDIR" "$@"
