@@ -9,7 +9,7 @@ function warning { LEVEL=WARNING log "$1"; }
 function info { LEVEL=INFO log "$1"; }
 function debug { LEVEL=DEBUG log "$1"; }
 
-((BASH_VERSINFO[0]<4 || BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old" && exit 2
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 ignore=0
 convert=1

@@ -43,7 +43,7 @@ SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
 
 # we need associative arrays, process substitution etc.
 # also, fail on failed intermediates as well:
-SHELL = /usr/bin/env bash -o pipefail
+SHELL = bash -o pipefail
 
 CONFIGURATION = $(abspath $(firstword $(MAKEFILE_LIST)))
 
