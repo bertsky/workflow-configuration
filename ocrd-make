@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # This script encapsulates calls to `make` in the CWD
 # after copying/symlinking the workflow-configuration
