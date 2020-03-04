@@ -306,6 +306,16 @@ endif
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
+ifeq ($(filter -j,$(MAKEFLAGS)),-j)
+# suppress other multiscalar mechanisms in parallel mode
+# (mostly related to Python numpy and Tesseract OpenMP:)
+export OMP_THREAD_LIMIT=1
+export OMP_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+endif
+
 view:
 # filter out file groups we do not need for current configuration:
 	ocrd workspace remove-group -fr $$(ocrd workspace list-group | \
