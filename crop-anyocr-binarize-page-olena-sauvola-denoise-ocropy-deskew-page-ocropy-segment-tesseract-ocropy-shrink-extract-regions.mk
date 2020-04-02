@@ -16,7 +16,7 @@
 
 info:
 	@echo "Read GT segmentation (on any level, merely for page frame),"
-	@echo "or if not available, then read image files and crop,"
+	@echo "or if not available, then read image files and binarize+crop,"
 	@echo "then binarize+denoise+deskew pages,"
 	@echo "then segment into regions and lines,"
 	@echo "then shrink regions into the hull polygon of its lines,"
@@ -29,23 +29,29 @@ INPUT = OCR-D-IMG
 $(INPUT):
 	ocrd workspace find -G $@ --download
 
+BIN = $(INPUT)-BINPAGE-sauvola
+
+$(BIN): $(INPUT)
+$(BIN): TOOL = ocrd-olena-binarize
+$(BIN): PARAMS = "impl": "sauvola-ms-split"
+
 CROP = OCR-D-SEG-PAGE-anyocr
 
-$(CROP): $(INPUT)
+$(CROP): $(BIN)
 $(CROP): TOOL = ocrd-anybaseocr-crop
 
 # search GT for page segmentation, otherwise use cropped image:
 INPUT2 = $(firstword $(foreach GRP,OCR-D-GT-SEG-PAGE OCR-D-GT-SEG-BLOCK OCR-D-GT-SEG-LINE,$(wildcard $(GRP))) $(CROP))
 
-BIN = $(INPUT2)-BINPAGE-sauvola
+BIN2 = $(INPUT2)-BINPAGE-sauvola
 
-$(BIN): $(INPUT2)
-$(BIN): TOOL = ocrd-olena-binarize
-$(BIN): PARAMS = "impl": "sauvola-ms-split"
+$(BIN2): $(INPUT2)
+$(BIN2): TOOL = ocrd-olena-binarize
+$(BIN2): PARAMS = "impl": "sauvola-ms-split"
 
-DEN = $(BIN)-DENOISE-ocropy
+DEN = $(BIN2)-DENOISE-ocropy
 
-$(DEN): $(BIN)
+$(DEN): $(BIN2)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
 $(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
