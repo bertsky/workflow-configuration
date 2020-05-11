@@ -86,7 +86,7 @@ cd "$1"
 mkdir -p OCR-D-IMG
 ocrd workspace init .
 num=0 zeros=0000
-find . -type f -not -name mets.xml | sort | while read file; do
+find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
     let num++
     page=${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -121,7 +121,7 @@ find . -type f -not -name mets.xml | sort | while read file; do
         case "$suffix" in
             .pdf|.PDF)
                 inopts=(-density $((2*$dpi)) -units PixelsPerInch)
-                outopts=(-resample $dpi)
+                outopts=(-background white -alpha remove -alpha off -resample $dpi)
                 ;;
             *)
                 inopts=()
