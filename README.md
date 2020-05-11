@@ -74,34 +74,32 @@ make install
 
 ... if you are in a (Python) virtual environment. Otherwise specify the installation prefix directory via environment variable `VIRTUAL_ENV`.
 
-If `$VIRTUAL_ENV/bin` is in your `PATH`, then you can now call...
+Assuming `$VIRTUAL_ENV/bin` is in your `PATH`, you can now call...
 ```bash
 ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
 ```
 
-... in the target directory with the same interface as above.
+... in the target directory with the same interface as above (only without the need for copying makefiles).
 
 
 ### Usage
 
-Workflows are processed like software builds: File groups are the targets to be built in each workspace (depending on one another), and all workspaces are built recursively.
+Workflows are processed like _software builds_: File groups (depending on one another) are the targets to be built in each workspace, and all workspaces are built recursively. A build is finished when all targets exist and none are older than their respective prerequisites (e.g. image files).
 
-To run a configuration (i.e. ensure its targets exist and are up-to-date)...
+To run a configuration...
 1. Activate working environment (virtualenv) and change to the target directory.
-2. Choose (or create) a workflow configuration makefile. (Yes, you can have to look inside and browse its rules!)
+2. Choose (or create) a workflow configuration makefile.  
+   (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
+
 ```bash
 [ocrd-]make -f CONFIGURATION.mk [all]
 ```
+(The special target `all` (which is also the default goal) will look for all workspaces in the current directory.)
 
-You can also run on a subset of workspaces by giving these as command line targets...
+You can also run on a subset of workspaces by passing these as goals on the command line...
 ```bash
 [ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
-```
-
-To (run a configuration and) clone only the workspace's results for the chosen configuration, and optimise it for JPageViewer...
-```bash
-[ocrd-]make -f CONFIGURATION.mk view
 ```
 
 To get help:
@@ -111,7 +109,7 @@ To get help:
 
 To get a short description of the chosen configuration:
 ```bash
-[ocrd-]make CONFIGURATION.mk info
+[ocrd-]make -f CONFIGURATION.mk info
 ```
 
 To prepare workspaces for processing by fixing certain flaws that kept happening during publication:
@@ -119,12 +117,12 @@ To prepare workspaces for processing by fixing certain flaws that kept happening
 [ocrd-]make repair
 ```
 
-To create workspaces from (flat) directories with image files:
+To create workspaces from directories which contain image files:
 ```bash
 ocrd-import DIRECTORY
 ```
 
-To get help on its many options:
+To get help for the import tool:
 ```bash
 ocrd-import --help
 ```
@@ -136,7 +134,7 @@ To spawn a new configuration file:
 
 ### Customisation
 
-To write new configurations, first choose a (sufficiently descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk`.
+To write new configurations, first choose a (sufficiently descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk` (or copy from an existing configuration).
 
 Next, edit the file to your needs: Write rules using file groups as prerequisites/targets in the normal GNU make syntax. The first target defined must be the default goal that builds the very last file group for that configuration, or else a variable `.DEFAULT_GOAL` pointing to that target must be set anywhere in the makefile.
 
@@ -147,11 +145,11 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 - Copy/paste rules from the existing configurations.
 - Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
 - Try to utilise the provided static pattern rule (which takes the target as output file group and the prerequisite as input file group) for all processing steps. The rule covers any OCR-D compliant processor with no more than 1 output file group. Use it by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever.
-- When your processor uses GPU resources, you must prevent races for GPU memory during parallel execution.
+- When any of your processors use GPU resources, you must prevent races for GPU memory during parallel execution.
   
-  You can achieve this by simply setting `GPU = 1` when using the static pattern rule, or by using `sem --id OCR-D-GPUSEM` in your own recipes.
+  You can achieve this by simply setting `GPU = 1` for that target when using the static pattern rule, or by using `sem --id OCR-D-GPUSEM` when writing your own recipes.
   
-  Alternatively, you can either prevent using GPUs globally by (un)setting `CUDA_VISIBLE_DEVICES=`, or using multiple CPUs by not running with `-j`.
+  Alternatively, you can either prevent using GPUs globally by (un)setting `CUDA_VISIBLE_DEVICES=`, or prevent running parallel jobs (on multiple CPUs) by passing `-j`.
 
 #### Example
 
@@ -289,6 +287,8 @@ Hence, it appears that consistently (across different OCRs) ...
 - additional deskewing and flipping with Tesseract on the region level usually deteriorates
 - binarization with `sauvola-ms-split` is better than `wolf`
 
+However, this result is still _preliminary_. Both the processor implementations evolve and the GT annotations get fixed over time.
+
 ### Implementation
 
 To make writing (and reading) configurations as simple as possible, they are expressed as rules operating on METS file groups (i.e. workspace-local). For convenience, the most common recipe pattern involving only 1 input and 1 output file group via some OCR-D CLI is available via static pattern rule, which merely takes the target-specific variables `TOOL` (the CLI executable) and optionally `PARAMS` (a comma-separated list of parameter assignments). Custom rules are possible as well. If the makefile does not start with the overall target, it must specify its `.DEFAULT_GOAL`, so callers can run without knowledge of the target names.
@@ -303,8 +303,10 @@ The former calls the latter recursively for each workspace.
 
 #### GPU vs CPU parallelism
 
-When executing workflows in parallel (with `--jobs`) on multiple CPUs, it must be ensured that not too many processors are running at any time which use GPU resources. Thus, make needs to know:
-1. which processors (have/want to) share GPU resources, and
+When executing workflows in parallel (with `--jobs`) on multiple CPUs, it must be ensured that not too many OCR-D processors which use GPU resources are running concurrently. Thus, make needs to know:
+1. which processors (have/want to) use GPU resources, and
 2. how many such processors can run in parallel.
 
 It can then synchronize these processors with a semaphore. This is achieved by expanding the static pattern rule with a synchronisation mechanism (based on GNU parallel). Workflow configurations can use that by setting the target-specific variable `GPU` to a non-empty value for the respective rules. (Custom recipes will have to use `sem --id OCR-D-GPUSEM`.)
+
+That way, races are prevented, but also GPUs cannot become the bottleneck: When all GPUs are busy, processors will fall back to CPU.
