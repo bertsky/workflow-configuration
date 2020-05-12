@@ -13,6 +13,7 @@ Nevertheless, there are also some _disadvantages_:
 
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
+- `make` cannot handle path names with spaces in them ([at all](https://savannah.gnu.org/bugs/?712))
 
 Contents:
  * [Dependencies](#dependencies)
