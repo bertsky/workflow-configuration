@@ -18,7 +18,7 @@ function process {
     (
         CURDIR="$PWD"
         cd "$SHAREDIR"
-        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null
+        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null || cp "$SHAREDIR"/{*.mk,Makefile} "$CURDIR"
         make -C "$CURDIR" "$@"
     )
 }
@@ -36,4 +36,5 @@ EOF
         ;;
 esac
 
+set -e
 process "$@"
