@@ -18,7 +18,7 @@ function process {
     (
         CURDIR="$PWD"
         cd "$SHAREDIR"
-        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null || cp "$SHAREDIR"/{*.mk,Makefile} "$CURDIR"
+        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null || cp -fu "$SHAREDIR"/{*.mk,Makefile} "$CURDIR"
         make -C "$CURDIR" "$@"
     )
 }
