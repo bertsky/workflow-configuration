@@ -88,14 +88,18 @@ ocrd workspace init .
 num=0 zeros=0000
 find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
     let num++
-    page=${zeros:0:$((4-${#num}))}$num
+    page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
     base="${name%$suffix}"
-    base="${base// /_}"
+    # XSD ID must start with letter and not contain colons
+    base="${base//[ :]/_}"
+    if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
+        base=f${base}
+    fi
     if !((numpageid)); then
         page=$base
         # file ID must contain group, or processors will have to
