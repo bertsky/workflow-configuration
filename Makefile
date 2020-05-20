@@ -104,7 +104,8 @@ install:
 	cp -Lf Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < ocrd-make > $(BINDIR)/ocrd-make
 	cp -Lf ocrd-import $(BINDIR)
-	chmod +x $(BINDIR)/ocrd-make $(BINDIR)/ocrd-import
+	cp -Lf ocrd-export-larex $(BINDIR)
+	chmod +x $(BINDIR)/ocrd-make $(BINDIR)/ocrd-import $(BINDIR)/ocrd-export-larex
 
 uninstall:
 	$(RM) $(BINDIR)/ocrd-make

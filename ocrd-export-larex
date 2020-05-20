@@ -15,6 +15,9 @@ page_filegrp=
 image_filegrp=
 out_dir=
 symlink=0
+declare -A typemap
+# LAREX always needs some @type
+typemap=(['not(@type)']=other)
 while (($#)); do
     case "${1:--h}" in
         -h|-[-]help)
@@ -25,6 +28,8 @@ with options:
  -I|--input-file-grp DIR[,DIR] File group(s) used as input
  -O|--output-directory DIR     Directory used as output
  -s|--symlink                  Try to symlink images intead of copying
+ -t|--map-type XPATH EXPR      Additional TextRegion @type mapping to apply
+                               (default: ($(for key in ${!typemap[*]}; do echo "['$key']='${typemap[$key]}'"; done)))
 
 Create a flat directory suitable for LAREX from an OCR-D workspace DIRECTORY
 (or $PWD), exporting...
@@ -54,6 +59,14 @@ EOF
             ;;
         -s|--symlink)
             symlink=1
+            shift
+            ;;
+        -t|--map-type)
+            shift
+            xpath="$1"
+            shift
+            expr="$1"
+            typemap["$xpath"]="$expr"
             shift
             ;;
         *)
@@ -127,10 +140,13 @@ fi
             ((symlink)) && ln -fs "$PWD/$image" "$target" || cp -fu "$image" "$target"
             info "copied .$suff image for page '$page'"
         fi
-        # LAREX needs some @type
-        xmlstarlet --no-doc-namespace ed --inplace -N "pc=${namespace}" \
-                   -a "//${ns_prefix}TextRegion[not(@type)]" -t attr -n type -v other \
+        if ((${#typemap[*]})); then
+            for xpath in ${!typemap[*]}; do
+                xmlstarlet --no-doc-namespace ed --inplace -N "pc=${namespace}" \
+                   -u "//${ns_prefix}TextRegion[$xpath]/@type" -v "${typemap[$xpath]}" \
                    "$file"
+            done
+        fi
     done
 ) || {
     echo rm -fr "$out_dir"
