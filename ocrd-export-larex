@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+
+function log {
+    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
+}
+function critical { LEVEL=CRITICAL log "$1"; }
+function error { LEVEL=ERROR log "$1"; }
+function warning { LEVEL=WARNING log "$1"; }
+function info { LEVEL=INFO log "$1"; }
+function debug { LEVEL=DEBUG log "$1"; }
+
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
+
+page_filegrp=
+image_filegrp=
+out_dir=
+symlink=0
+while (($#)); do
+    case "${1:--h}" in
+        -h|-[-]help)
+            cat <<EOF
+Usage: $(basename $0) [OPTIONS] [DIRECTORY]
+
+with options:
+ -I|--input-file-grp DIR[,DIR] File group(s) used as input
+ -O|--output-directory DIR     Directory used as output
+ -s|--symlink                  Try to symlink images intead of copying
+
+Create a flat directory suitable for LAREX from an OCR-D workspace DIRECTORY
+(or $PWD), exporting...
+* all PAGE-XML files from the first (or only) input-file-grp, if given,
+  (or the very last fileGrp which can be found in the workspace)
+* all image files from the second input-file-grp, if given,
+  (or the @imageFilename referenced in the PAGE-XML)
+...and placing them into the output-directory, if given
+  (or the subdirectory "larex").
+To facilitate current limitations of LAREX, name all files with the same
+stem (derived from the page number), and add a "@type=other" to all
+TextRegion instances without a "@type".
+(For PAGE-XML files, make copies, for image files, make symlinks if possible.)
+EOF
+            exit
+            ;;
+        -I|--input-file-grp)
+            shift
+            page_filegrp="${1%%,*}"
+            image_filegrp="${1##*,}"
+            shift
+            ;;
+        -O|--output-directory)
+            shift
+            out_dir="$1"
+            shift
+            ;;
+        -s|--symlink)
+            symlink=1
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+(($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
+
+set -e
+declare -A MIMETYPES
+eval MIMETYPES=( $(ocrd bashlib constants MIME_TO_EXT) )
+MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
+DIRECTORY="${1:-.}"
+test -d "$DIRECTORY"
+
+# avoid damaging/replacing existing workspaces:
+if test -f "$DIRECTORY"/mets.xml; then
+   cd "$DIRECTORY"
+elif test -d "$DIRECTORY"/data -a -f "$DIRECTORY"/data/mets.xml; then
+    cd "$DIRECTORY"/data
+else
+    error "Directory '$DIRECTORY' is not a workspace"
+    exit 1
+fi
+
+# sub-shell to back-off from out_dir in case of failure:
+(
+    if test -z "$out_dir"; then
+        out_dir=larex
+        debug "using --output-directory '$PWD/larex'"
+    else
+        out_dir=$(realpath --relative-to=$OLDPWD "$out_dir")
+    fi
+    mkdir -p "$out_dir"
+    if test -z "$page_filegrp"; then
+        page_filegrp=$(ocrd workspace list-group | tail -1)
+        debug "using --input-file-grp '$page_filegrp'"
+    fi
+    ocrd workspace find -G "$page_filegrp" -m $MIMETYPE_PAGE -k local_filename -k pageId | while read file page; do
+        cp -fu $file "$out_dir"/$page.xml
+        info "copied PAGE-XML for page '$page'"
+    done
+    if test -n "$image_filegrp"; then
+        ocrd workspace find -G "$image_filegrp" -k local_filename -k pageId -k mimetype | while read file page mime; do
+            suff=${MIMETYPES[$mime]}
+            target="$out_dir"/$page${suff:-.png}
+            ((symlink)) && ln -fs "$PWD/$file" "$target" || cp -fu $file "$target"
+            info "copied $suff image for page '$page'"
+        done
+    fi
+    for file in "$out_dir"/*.xml; do
+        # to become independent of whether and what
+        # namespace prefix is used for PAGE-XML,
+        # we first have to know the namespace:
+        namespace=$(xmlstarlet sel -t -m '/*[1]' -v 'namespace-uri()' "$file")
+        # now (using --no-doc-namespace) we can
+        # safely query with -N pc=${namespace}
+        # and safely add with prefix ${ns_prefix}:
+        ns_prefix=$(xmlstarlet sel -t -m '/*[1]' -v 'substring-before(name(),"PcGts")' "$file"; true)
+        if test -z "$image_filegrp"; then
+            image=$(xmlstarlet --no-doc-namespace sel \
+                       -N "pc=${namespace}" -t -v '/pc:PcGts/pc:Page/@imageFilename' \
+                       "$file")
+            page="${file%.xml}"
+            page="${page#$out_dir/}"
+            debug "found image '$image' for page '$page'"
+            suff=${image##*.}
+            target="${file%.xml}".${suff:-png}
+            ((symlink)) && ln -fs "$PWD/$image" "$target" || cp -fu "$image" "$target"
+            info "copied .$suff image for page '$page'"
+        fi
+        # LAREX needs some @type
+        xmlstarlet --no-doc-namespace ed --inplace -N "pc=${namespace}" \
+                   -a "//${ns_prefix}TextRegion[not(@type)]" -t attr -n type -v other \
+                   "$file"
+    done
+) || {
+    echo rm -fr "$out_dir"
+    critical "Cancelled '$DIRECTORY'"
+    exit 2
+}
