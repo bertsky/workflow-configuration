@@ -18,6 +18,9 @@ function process {
     (
         CURDIR="$PWD"
         cd "$SHAREDIR"
+        # we want to have a fall-back for FS without symlink support
+        # or when some makefile already exists (perhaps with customization)
+        # but unfortunately, `cp -u` has strange semantics w.r.t. retvalue
         ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null || cp -fu "$SHAREDIR"/{*.mk,Makefile} "$CURDIR"
         make -C "$CURDIR" "$@"
     )
@@ -36,5 +39,5 @@ EOF
         ;;
 esac
 
-set -e
+#set -e
 process "$@"
