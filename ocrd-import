@@ -72,17 +72,18 @@ set -e
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
-test -d "${1:=.}"
+DIRECTORY="${1:-.}"
+test -d "$DIRECTORY"
 
 # avoid damaging/replacing existing workspaces:
-if test -f "$1"/mets.xml || test -d "$1"/data -a -f "$1"/data/mets.xml; then
+if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"/data/mets.xml; then
     error "Directory '$1' already is a workspace"
     exit 1
 fi
 
 # sub-shell to back-off from mets.xml and subdir in case of failure:
 (
-cd "$1"
+cd "$DIRECTORY"
 mkdir -p OCR-D-IMG
 ocrd workspace init .
 num=0 zeros=0000
@@ -189,9 +190,9 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
     add_file $group $mimetype $page "$base" "$file"
 done
 ) || {
-    rm "$1"/mets.xml
-    critical "Cancelled '$1'"
+    rm "$DIRECTORY"/mets.xml
+    critical "Cancelled '$DIRECTORY'"
     exit 2
 }
 
-info "Success on '$1'"
+info "Success on '$DIRECTORY'"
