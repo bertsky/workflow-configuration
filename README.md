@@ -13,7 +13,7 @@ Nevertheless, there are also some _disadvantages_:
 
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
-- `make` cannot handle path names with spaces in them ([at all](https://savannah.gnu.org/bugs/?712))
+- `make` **cannot** handle _path names with spaces_ in them ([at all](https://savannah.gnu.org/bugs/?712))
 
 Contents:
  * [Dependencies](#dependencies)
@@ -28,6 +28,7 @@ Contents:
     * [OCR-D ground truth](#ocr-d-ground-truth)
  * [Implementation](#implementation)
     * [GPU vs CPU parallelism](#gpu-vs-cpu-parallelism)
+    * [workspace vs page parallelism](#workspace-vs-page-parallelism)
 
 ### Dependencies
 
@@ -304,10 +305,18 @@ The former calls the latter recursively for each workspace.
 
 #### GPU vs CPU parallelism
 
-When executing workflows in parallel (with `--jobs`) on multiple CPUs, it must be ensured that not too many OCR-D processors which use GPU resources are running concurrently. Thus, make needs to know:
+When executing workflows in parallel across workspaces (with `--jobs`) on multiple CPUs, it must be ensured that not too many OCR-D processors which use GPU resources are running concurrently (to prevent over-allocation of GPU memory). Thus, make needs to know:
 1. which processors (have/want to) use GPU resources, and
 2. how many such processors can run in parallel.
 
 It can then synchronize these processors with a semaphore. This is achieved by expanding the static pattern rule with a synchronisation mechanism (based on GNU parallel). Workflow configurations can use that by setting the target-specific variable `GPU` to a non-empty value for the respective rules. (Custom recipes will have to use `sem --id OCR-D-GPUSEM`.)
 
 That way, races are prevented, but also GPUs cannot become the bottleneck: When all GPUs are busy, processors will fall back to CPU.
+
+#### workspace vs page parallelism
+
+When executing workflows in parallel across workspaces (with `--jobs`) on multiple CPUs, it must be ensured that OCR-D processors do not use local multiprocessing facilities themselves (to prevent over-allocation of CPUs).
+
+In the current state of affairs, OCR-D processors cannot be run in parallel across pages via multiprocessing. (At least, they are never implemented that way.) That may change in the future with a [new OCR-D API](https://github.com/OCR-D/core/issues/322). But still, many processors do already use libraries like OpenMP or OpenBLAS which use multiprocessing locally within pages. This can be controlled via _environment variables_ like `OMP_THREAD_LIMIT`.
+
+This is achieved by exporting these variables to all recipes with a value of `1` when `-j` is in `MAKEFLAGS` or half the number of physical CPUs (unless `NTHREADS` is explicitly given) otherwise.
