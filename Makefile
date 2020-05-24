@@ -307,15 +307,16 @@ endif
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
-ifeq ($(filter -j,$(MAKEFLAGS)),-j)
 # suppress other multiscalar mechanisms in parallel mode
 # (mostly related to Python numpy and Tesseract OpenMP:)
-export OMP_THREAD_LIMIT=1
-export OMP_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export VECLIB_MAXIMUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
-endif
+NPROCS != nproc
+NPROCS2 != echo $$(( $(NPROCS)/2 ))
+NTHREADS ?= $(if $(filter 0,$(NPROCS2)),1,$(NPROCS2))
+export OMP_THREAD_LIMIT=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
+export OMP_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
+export OPENBLAS_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
+export VECLIB_MAXIMUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
+export NUMEXPR_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 
 view:
 # filter out file groups we do not need for current configuration:
