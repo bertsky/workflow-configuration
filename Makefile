@@ -45,10 +45,10 @@ SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
 # also, fail on failed intermediates as well:
 SHELL = bash -o pipefail
 
-CONFIGURATION = $(abspath $(firstword $(MAKEFILE_LIST)))
+CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
 
-CONFIGDIR = $(dir $(CONFIGURATION))
-CONFIGNAME = $(basename $(notdir $(CONFIGURATION)))
+CONFIGDIR := $(dir $(CONFIGURATION))
+CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
 WORKSPACES := $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
@@ -384,7 +384,5 @@ endif # (if found workspaces)
 
 # do not search for implicit rules here:
 Makefile: ;
-EXISTING_MAKEFILES = $(wildcard $(CONFIGDIR)/*.mk)
+EXISTING_MAKEFILES := $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
 $(EXISTING_MAKEFILES): ;
-
-
