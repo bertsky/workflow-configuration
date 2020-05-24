@@ -18,7 +18,7 @@ info:
 	@echo "Read GT segmentation (on any level, merely for page frame),"
 	@echo "or if not available, then read image files and binarize+crop,"
 	@echo "then binarize+denoise+deskew pages,"
-	@echo "then segment into regions with Tesseract and post-process,"
+	@echo "then segment into regions with Tesseract, deskew and post-process,"
 	@echo "then segment into lines with Ocropy and dewarp,"
 	@echo "and finally recognize lines with various Ocropus+Tesseract models."
 
@@ -53,9 +53,15 @@ $(DEN): $(BIN2)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
 $(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
-DESK = $(DEN)-DESKEW-ocropy
+FLIP = $(DEN)-DESKEW-tesseract
 
-$(DESK): $(DEN)
+$(FLIP): $(DEN)
+$(FLIP): TOOL = ocrd-tesserocr-deskew
+$(FLIP): PARAMS = "operation_level": "page"
+
+DESK = $(FLIP)-DESKEW-ocropy
+
+$(DESK): $(FLIP)
 $(DESK): TOOL = ocrd-cis-ocropy-deskew
 $(DESK): PARAMS = "level-of-operation": "page", "maxskew": 5
 
@@ -76,9 +82,15 @@ CLIP = $(BLOCK)-CLIP
 $(CLIP): $(PLAUSIBLE)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
+FLIPR = $(CLIP)-DESKEW-tesseract
+
+$(FLIPR): $(CLIP)
+$(FLIPR): TOOL = ocrd-tesserocr-deskew
+$(FLIPR): PARAMS = "operation_level": "region"
+
 LINE = OCR-D-SEG-LINE-tesseract-ocropy
 
-$(LINE): $(CLIP)
+$(LINE): $(FLIPR)
 $(LINE): TOOL = ocrd-cis-ocropy-segment
 $(LINE): PARAMS = "spread": 2.4
 

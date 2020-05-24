@@ -39,9 +39,15 @@ $(DEN): $(BIN)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
 $(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
-DESK = $(DEN)-DESKEW-ocropy
+FLIP = $(DEN)-DESKEW-tesseract
 
-$(DESK): $(DEN)
+$(FLIP): $(DEN)
+$(FLIP): TOOL = ocrd-tesserocr-deskew
+$(FLIP): PARAMS = "operation_level": "page"
+
+DESK = $(FLIP)-DESKEW-ocropy
+
+$(DESK): $(FLIP)
 $(DESK): TOOL = ocrd-cis-ocropy-deskew
 $(DESK): PARAMS = "level-of-operation": "page", "maxskew": 5
 

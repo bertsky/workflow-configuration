@@ -33,9 +33,15 @@ $(BIN): $(INPUT)
 $(BIN): TOOL = ocrd-olena-binarize
 $(BIN): PARAMS = "impl": "sauvola-ms-split"
 
-DESK = $(BIN)-DESKEW-ocropy
+FLIP = $(BIN)-DESKEW-tesseract
 
-$(DESK): $(BIN)
+$(FLIP): $(BIN)
+$(FLIP): TOOL = ocrd-tesserocr-deskew
+$(FLIP): PARAMS = "operation_level": "page"
+
+DESK = $(FLIP)-DESKEW-ocropy
+
+$(DESK): $(FLIP)
 $(DESK): TOOL = ocrd-cis-ocropy-deskew
 $(DESK): PARAMS = "level-of-operation": "page", "maxskew": 5
 

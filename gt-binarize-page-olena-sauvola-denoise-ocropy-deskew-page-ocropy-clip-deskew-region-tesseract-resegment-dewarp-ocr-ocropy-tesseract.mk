@@ -39,9 +39,15 @@ $(DEN): $(BIN)
 $(DEN): TOOL = ocrd-cis-ocropy-denoise
 $(DEN): PARAMS = "level-of-operation": "page", "noise_maxsize": 3.0
 
-DESK = $(DEN)-DESKEW-ocropy
+FLIP = $(DEN)-DESKEW-tesseract
 
-$(DESK): $(DEN)
+$(FLIP): $(DEN)
+$(FLIP): TOOL = ocrd-tesserocr-deskew
+$(FLIP): PARAMS = "operation_level": "page"
+
+DESK = $(FLIP)-DESKEW-ocropy
+
+$(DESK): $(FLIP)
 $(DESK): TOOL = ocrd-cis-ocropy-deskew
 $(DESK): PARAMS = "level-of-operation": "page", "maxskew": 5
 
@@ -50,11 +56,17 @@ CLIP = $(DESK)-CLIP
 $(CLIP): $(DESK)
 $(CLIP): TOOL = ocrd-cis-ocropy-clip
 
-DESK2 = $(CLIP)-DESKEW-tesseract
+FLIP2 = $(CLIP)-DESKEW-tesseract
 
-$(DESK2): $(CLIP)
-$(DESK2): TOOL = ocrd-tesserocr-deskew
-$(DESK2): PARAMS = "operation_level": "region", "min_orientation_confidence": 1.5
+$(FLIP2): $(CLIP)
+$(FLIP2): TOOL = ocrd-tesserocr-deskew
+$(FLIP2): PARAMS = "operation_level": "region"
+
+DESK2 = $(FLIP2)-DESKEW-ocropy
+
+$(DESK2): $(FLIP2)
+$(DESK2): TOOL = ocrd-cis-ocropy-deskew
+$(DESK2): PARAMS = "level-of-operation": "region"
 
 RESEG = $(DESK2)-RESEG
 
