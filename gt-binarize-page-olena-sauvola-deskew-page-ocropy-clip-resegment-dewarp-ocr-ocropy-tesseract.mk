@@ -72,8 +72,8 @@ OCR8 = $(DEW:$(INPUT)-%=OCR-D-OCR-CALA-gt4histocr-%)
 $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8): $(DEW)
 
 $(OCR1) $(OCR2): TOOL = ocrd-cis-ocropy-recognize
-$(OCR1): PARAMS = "textequiv_level": "glyph", "model": "fraktur.pyrnn"
-$(OCR2): PARAMS = "textequiv_level": "glyph", "model": "fraktur-jze.pyrnn"
+$(OCR1): PARAMS = "textequiv_level": "glyph", "model": "fraktur.pyrnn.gz"
+$(OCR2): PARAMS = "textequiv_level": "glyph", "model": "fraktur-jze.pyrnn.gz"
 
 $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7): TOOL = ocrd-tesserocr-recognize
 $(OCR3): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "script/Fraktur"
