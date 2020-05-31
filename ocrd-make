@@ -34,7 +34,7 @@ function process {
 }
 
 case ${1:--h} in
-    -C|-[-]cleanup|cleanup)
+    -c|-[-]cleanup|cleanup)
         process --no-print-directory cleanup
         exit
         ;;
