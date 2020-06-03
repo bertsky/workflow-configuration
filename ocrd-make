@@ -24,10 +24,9 @@ function process {
         for f in *.mk Makefile;do
             local src="$SHAREDIR/$f"
             local dst="$CURDIR/$f"
-            if [[ -e "$dst" ]];then
-                continue
+            if [[ ! -e "$dst" || "$src" -nt "$dst" ]];then
+                ln -s "$src" "$dst" 2>/dev/null || cp -f "$src" "$dst"
             fi
-            ln -s "$src" "$dst" 2>/dev/null || cp -f "$src" "$dst"
         done
         make -C "$CURDIR" "$@"
     )
