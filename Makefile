@@ -30,8 +30,6 @@ VIRTUAL_ENV ?= $(CURDIR)/local
 BINDIR = $(abspath $(VIRTUAL_ENV))/bin
 # copy the makefiles here:
 SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
-# log level
-LOGLEVEL ?= INFO
 
 # This file must be included by all specific configuration makefiles.
 
@@ -277,7 +275,7 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 space = $() $()
 comma = ,
 define toolrecipe =
-$(TOOL) -l $(LOGLEVEL) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
+$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
 	touch -c $@ || { \
 	rm -fr $@.json $@; exit 1; }
 endef
