@@ -21,13 +21,22 @@ function process {
         # we want to have a fall-back for FS without symlink support
         # or when some makefile already exists (perhaps with customization)
         # but unfortunately, `cp -u` has strange semantics w.r.t. retvalue
-        ln -t "$CURDIR" -s "$SHAREDIR"/{*.mk,Makefile} 2>/dev/null || cp -fu "$SHAREDIR"/{*.mk,Makefile} "$CURDIR"
+        for f in *.mk Makefile;do
+            local src="$SHAREDIR/$f"
+            local dst="$CURDIR/$f"
+            if [[ ! -e "$dst" || "$src" -nt "$dst" ]];then
+                ln -s "$src" "$dst" 2>/dev/null || cp -f "$src" "$dst"
+            fi
+        done
         make -C "$CURDIR" "$@"
     )
 }
 
-
 case ${1:--h} in
+    -c|-[-]cleanup|cleanup)
+        process --no-print-directory cleanup
+        exit
+        ;;
     -h|-[-]help|help)
         cat <<EOF
   (This will merely delegate to \`make\` on the current working directory "$PWD"

@@ -52,7 +52,7 @@ CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
 WORKSPACES := $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
-ifeq ($(filter help info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 $(error Did you forget to select a workflow configuration makefile?)
 else
@@ -71,6 +71,7 @@ help:
 	@echo
 	@echo "  Targets (general):"
 	@echo "  * help (this message)"
+	@echo "  * cleanup (remove symlinked/copied Makefiles)"
 	@echo "  * deps-ubuntu (install extra system packages needed here, beyond ocrd and processors)"
 	@echo "  * install (copy 'ocrd-make' script and configuration makefiles to"
 	@echo "  *          VIRTUAL_ENV=$(VIRTUAL_ENV))"
@@ -110,6 +111,9 @@ install:
 uninstall:
 	$(RM) $(BINDIR)/ocrd-make
 	$(RM) -r $(SHAREDIR)
+
+cleanup:
+	find $(SHAREDIR) \( -name 'Makefile' -or -name '*.mk' \) -exec basename {} \; |xargs rm -v
 
 .PHONY: deps-ubuntu install uninstall
 
