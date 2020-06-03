@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 function log {
-    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
+    echo >&2 "$(date +%T.%3N) $LEVEL $0 - $1"
 }
 function critical { LEVEL=CRITICAL log "$1"; }
 function error { LEVEL=ERROR log "$1"; }
@@ -50,6 +50,9 @@ EOF
             shift
             page_filegrp="${1%%,*}"
             image_filegrp="${1##*,}"
+            if test "x$page_filegrp" = "x$image_filegrp"; then
+                image_filegrp=
+            fi
             shift
             ;;
         -O|--output-directory)
@@ -67,6 +70,10 @@ EOF
             shift
             expr="$1"
             typemap["$xpath"]="$expr"
+            shift
+            ;;
+        -p|--parameter)
+            shift
             shift
             ;;
         *)
@@ -120,6 +127,8 @@ fi
         done
     fi
     for file in "$out_dir"/*.xml; do
+        page="${file%.xml}"
+        page="${page#$out_dir/}"
         # to become independent of whether and what
         # namespace prefix is used for PAGE-XML,
         # we first have to know the namespace:
@@ -132,8 +141,6 @@ fi
             image=$(xmlstarlet --no-doc-namespace sel \
                        -N "pc=${namespace}" -t -v '/pc:PcGts/pc:Page/@imageFilename' \
                        "$file")
-            page="${file%.xml}"
-            page="${page#$out_dir/}"
             debug "found image '$image' for page '$page'"
             suff=${image##*.}
             target="${file%.xml}".${suff:-png}
@@ -147,6 +154,9 @@ fi
                    "$file"
             done
         fi
+        xmlstarlet --no-doc-namespace ed --inplace -N "pc=${namespace}" \
+                   -u "/pc:PcGts/pc:Page/@imageFilename" \
+                   -v "$page.png" "$file"
     done
 ) || {
     echo rm -fr "$out_dir"
