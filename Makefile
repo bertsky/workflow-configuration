@@ -279,7 +279,7 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 space = $() $()
 comma = ,
 define toolrecipe =
-$(TOOL) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
+$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
 	touch -c $@ || { \
 	rm -fr $@.json $@; exit 1; }
 endef
