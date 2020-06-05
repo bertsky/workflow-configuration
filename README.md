@@ -13,7 +13,9 @@ Nevertheless, there are also some _disadvantages_:
 
 - depends on directories (fileGrps) as targets, which is hard to get correct under all circumstances
 - must mediate between filesystem perspective (understood by `make`) and METS perspective
-- `make` **cannot** handle _path names with spaces_ in them ([at all](https://savannah.gnu.org/bugs/?712))
+- `make` **cannot** handle _target names with spaces_ in them ([at all](https://savannah.gnu.org/bugs/?712))  
+  (This means that fileGrp directories must not have spaces.
+   Local file paths may contain spaces though, if the respective processors support that.)
 
 Contents:
  * [Dependencies](#dependencies)
@@ -114,6 +116,11 @@ To get a short description of the chosen configuration:
 [ocrd-]make -f CONFIGURATION.mk info
 ```
 
+To remove the configuration makefiles in the current/target directory:
+```bash
+[ocrd-]make clean
+```
+
 To prepare workspaces for processing by fixing certain flaws that kept happening during publication:
 ```bash
 [ocrd-]make repair
@@ -127,6 +134,16 @@ ocrd-import DIRECTORY
 To get help for the import tool:
 ```bash
 ocrd-import --help
+```
+
+To derive flat directories from workspaces suitable for LAREX annotation:
+```bash
+ocrd-export-larex -I FILEGRP -O DIR
+```
+
+To get help for the LAREX export tool:
+```bash
+ocrd-export-larex --help
 ```
 
 To spawn a new configuration file:

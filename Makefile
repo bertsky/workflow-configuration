@@ -52,7 +52,7 @@ CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
 WORKSPACES := $(patsubst %/mets.xml,%,$(wildcard */data/mets.xml */mets.xml))
 
-ifeq ($(filter help cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help clean cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 $(error Did you forget to select a workflow configuration makefile?)
 else
@@ -71,12 +71,13 @@ help:
 	@echo
 	@echo "  Targets (general):"
 	@echo "  * help (this message)"
-	@echo "  * cleanup (remove symlinked/copied Makefiles)"
 	@echo "  * deps-ubuntu (install extra system packages needed here, beyond ocrd and processors)"
 	@echo "  * install (copy 'ocrd-make' script and configuration makefiles to"
-	@echo "  *          VIRTUAL_ENV=$(VIRTUAL_ENV))"
+	@echo "  *          VIRTUAL_ENV=$(VIRTUAL_ENV) from repository workdir)"
 	@echo "  * uninstall (remove 'ocrd-make' script and configuration makefiles from"
 	@echo "  *            VIRTUAL_ENV=$(VIRTUAL_ENV))"
+	@echo "  * clean (remove installed configuration makefiles previously symlinked/copied from"
+	@echo "  *        PWD=$(CURDIR))"
 	@echo
 	@echo "  Targets (data processing):"
 	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
@@ -88,12 +89,16 @@ help:
 	@echo
 	@echo "  Makefiles (i.e. configurations; select via '-f CONFIGURATION.mk')"
 	@echo
-	@for makefile in $(wildcard *.mk); do echo "  * $$makefile"; done
+	@for makefile in $(EXISTING_MAKEFILES); do echo "  * $$makefile"; done
 	@echo
 	@echo "  Variables:"
 	@echo
 	@echo "  * VIRTUAL_ENV: directory prefix to use for installation"
 	@echo "  * EXTRA_MAKEFLAGS: pass these options to recursive make (e.g. -W OCR-D-GT-SEG-LINE)"
+	@echo "  * LOGLEVEL: override global loglevel for all OCR-D processors"
+	@echo "    (if unset, then default/configured logging levels apply)"
+	@echo "  * PAGES: override pageId selection (comma-separated list)"
+	@echo "    (if unset, then all pages will be processed)"
 
 .PHONY: help
 
@@ -112,10 +117,10 @@ uninstall:
 	$(RM) $(BINDIR)/ocrd-make
 	$(RM) -r $(SHAREDIR)
 
-cleanup:
+clean cleanup:
 	find $(SHAREDIR) \( -name 'Makefile' -or -name '*.mk' \) -exec basename {} \; |xargs rm -v
 
-.PHONY: deps-ubuntu install uninstall
+.PHONY: deps-ubuntu install uninstall cleanup clean
 
 # spawn a new configuration
 define skeleton =
@@ -279,7 +284,8 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 space = $() $()
 comma = ,
 define toolrecipe =
-$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) -I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
+$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
+	-I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
 	touch -c $@ || { \
 	rm -fr $@.json $@; exit 1; }
 endef
