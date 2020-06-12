@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 
+declare -A LOGLEVELS
+LOGLEVELS=([CRITICAL]=1 [OFF]=1 [ERROR]=2 [WARNING]=3 [WARN]=3 [INFO]=4 [DEBUG]=5 [TRACE]=5)
 function log {
+    provided=${LOGLEVELS[$LEVEL]:-0}
+    current=${LOGLEVELS[$loglevel]:-0}
+    test $provided -le $current || return
     echo >&2 "$(date +%T.%3N) $LEVEL $0 - $1"
 }
 function critical { LEVEL=CRITICAL log "$1"; }
@@ -13,8 +18,10 @@ function debug { LEVEL=DEBUG log "$1"; }
 
 page_filegrp=
 image_filegrp=
+pages=
 out_dir=
 symlink=0
+loglevel=INFO
 declare -A typemap
 # LAREX always needs some @type
 typemap=(['not(@type)']=other)
@@ -27,6 +34,8 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 with options:
  -I|--input-file-grp DIR[,DIR] File group(s) used as input
  -O|--output-directory DIR     Directory used as output
+ -g|--page-id ID               Physical page ID(s) to limit to
+ -l|--log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE] Log level
  -s|--symlink                  Try to symlink images intead of copying
  -t|--map-type XPATH EXPR      Additional TextRegion @type mapping to apply
                                (default: ($(for key in ${!typemap[*]}; do echo "['$key']='${typemap[$key]}'"; done)))
@@ -60,6 +69,16 @@ EOF
             out_dir="$1"
             shift
             ;;
+        -g|--page-id)
+            shift
+            pages="$1"
+            shift
+            ;;
+        -l|--log-level)
+            shift
+            loglevel=$1
+            shift
+            ;;
         -s|--symlink)
             symlink=1
             shift
@@ -74,6 +93,9 @@ EOF
             ;;
         -p|--parameter)
             shift
+            shift
+            ;;
+        --overwrite)
             shift
             ;;
         *)
@@ -114,12 +136,12 @@ fi
         page_filegrp=$(ocrd workspace list-group | tail -1)
         debug "using --input-file-grp '$page_filegrp'"
     fi
-    ocrd workspace find -G "$page_filegrp" -m $MIMETYPE_PAGE -k local_filename -k pageId | while read file page; do
-        cp -fu $file "$out_dir"/$page.xml
+    ocrd workspace find -G "$page_filegrp" ${pages:+-g} $pages -m $MIMETYPE_PAGE -k local_filename -k pageId | while read file page; do
+        cp -f $file "$out_dir"/$page.xml
         info "copied PAGE-XML for page '$page'"
     done
     if test -n "$image_filegrp"; then
-        ocrd workspace find -G "$image_filegrp" -k local_filename -k pageId -k mimetype | while read file page mime; do
+        ocrd workspace find -G "$image_filegrp" ${pages:+-g} $pages -k local_filename -k pageId -k mimetype | while read file page mime; do
             suff=${MIMETYPES[$mime]}
             target="$out_dir"/$page${suff:-.png}
             ((symlink)) && ln -fs "$PWD/$file" "$target" || cp -fu $file "$target"
@@ -158,8 +180,4 @@ fi
                    -u "/pc:PcGts/pc:Page/@imageFilename" \
                    -v "$page.png" "$file"
     done
-) || {
-    echo rm -fr "$out_dir"
-    critical "Cancelled '$DIRECTORY'"
-    exit 2
-}
+)
