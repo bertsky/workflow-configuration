@@ -244,10 +244,7 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 #
 # So in the recipes, once we know some output is out of date,
 # we must ensure it does not get in the way in the METS.
-# As long as the processors have no option --force/overwrite,
-# we thus must add a remove command everywhere on spec.
-# However, `remove-group -f` does not behave like `rm -f`
-# at the moment, so we have to intercept any errors from it.
+# Hence we always process with --overwrite.
 #
 # Likewise, when errors occur during processing, leaving
 # a partial annotation in the workspace, we need to remove
@@ -257,7 +254,7 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # For the same reason (i.e. poor support for directories as
 # targets), we must update the timestamp of the target when
 # the processor succeeded, because it might not actually
-# create new files (merely overwrite them).
+# create new files (but merely overwrite them).
 #
 # Moreover, the default rule must not catch file groups that
 # were never meant to be rebuilt (like image or GT input),
@@ -268,9 +265,8 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # So overall, the last-resort pattern recipe for processors
 # comprises:
 # 1. line: a check failing the recipe when no TOOL/prereqs were set
-# 2. line: a workspace remove-group simulating force/overwrite
-# 3. line: generating the parameter JSON file
-# 4. line: the actual TOOL execution, with `touch` on success,
+# 2. line: generating the parameter JSON file
+# 3. line: the actual TOOL execution, with `touch` on success,
 #          and `rm -r` on failure.
 #
 # Further, when processors have more than 1 input file group
@@ -284,10 +280,12 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 space = $() $()
 comma = ,
 define toolrecipe =
-$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
-	-I $(subst $(space),$(comma),$^) -O $@ -p $@.json 2>&1 | tee $@.log && \
+STAMP=`test -e $@ && date -Ins -r $@`; \
+	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
+	-I $(subst $(space),$(comma),$^) -p $@.json \
+	-O $@ --overwrite 2>&1 | tee $@.log && \
 	touch -c $@ || { \
-	rm -fr $@.json $@; exit 1; }
+	if test -z "$$STAMP"; then rm -fr $@; else touch -c -d "$$STAMP" $@; fi; false; }
 endef
 # Extra recipe to control allocation of GPU resources
 # (for processors explicitly configured as CUDA-enabled):
@@ -313,7 +311,6 @@ endif
 %: PARAMS =
 %:
 	@$(if $(and $(TOOL),$<),echo "building $@ from $< with pattern rule for $(TOOL)",$(MAKE) -R -f /dev/null $@)
-	ocrd workspace remove-group -r $@ 2>/dev/null || true
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
