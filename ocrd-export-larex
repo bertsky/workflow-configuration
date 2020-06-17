@@ -5,7 +5,7 @@ LOGLEVELS=([CRITICAL]=1 [OFF]=1 [ERROR]=2 [WARNING]=3 [WARN]=3 [INFO]=4 [DEBUG]=
 function log {
     provided=${LOGLEVELS[$LEVEL]:-0}
     current=${LOGLEVELS[$loglevel]:-0}
-    test $provided -le $current || return
+    test $provided -le $current || return 0
     echo >&2 "$(date +%T.%3N) $LEVEL $0 - $1"
 }
 function critical { LEVEL=CRITICAL log "$1"; }
@@ -136,8 +136,10 @@ fi
         page_filegrp=$(ocrd workspace list-group | tail -1)
         debug "using --input-file-grp '$page_filegrp'"
     fi
+    out_files=()
     ocrd workspace find -G "$page_filegrp" ${pages:+-g} $pages -m $MIMETYPE_PAGE -k local_filename -k pageId | while read file page; do
         cp -f $file "$out_dir"/$page.xml
+        out_files+=("$out_dir"/$page.xml)
         info "copied PAGE-XML for page '$page'"
     done
     if test -n "$image_filegrp"; then
@@ -148,7 +150,7 @@ fi
             info "copied $suff image for page '$page'"
         done
     fi
-    for file in "$out_dir"/*.xml; do
+    for file in "${out_files[@]}"; do
         page="${file%.xml}"
         page="${page#$out_dir/}"
         # to become independent of whether and what
