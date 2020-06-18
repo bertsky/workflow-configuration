@@ -136,23 +136,13 @@ fi
         page_filegrp=$(ocrd workspace list-group | tail -1)
         debug "using --input-file-grp '$page_filegrp'"
     fi
-    out_files=()
-    ocrd workspace find -G "$page_filegrp" ${pages:+-g} $pages -m $MIMETYPE_PAGE -k local_filename -k pageId | while read file page; do
+    files=( $(ocrd workspace find -G "$page_filegrp" ${pages:+-g} $pages -m $MIMETYPE_PAGE -k local_filename -k pageId) )
+    for ((i=0; i+1<${#files[*]}; i+=2)); do
+        file=${files[i]}
+        page=${files[i+1]}
         cp -f $file "$out_dir"/$page.xml
-        out_files+=("$out_dir"/$page.xml)
+        file="$out_dir"/$page.xml
         info "copied PAGE-XML for page '$page'"
-    done
-    if test -n "$image_filegrp"; then
-        ocrd workspace find -G "$image_filegrp" ${pages:+-g} $pages -k local_filename -k pageId -k mimetype | while read file page mime; do
-            suff=${MIMETYPES[$mime]}
-            target="$out_dir"/$page${suff:-.png}
-            ((symlink)) && ln -fs "$PWD/$file" "$target" || cp -fu $file "$target"
-            info "copied $suff image for page '$page'"
-        done
-    fi
-    for file in "${out_files[@]}"; do
-        page="${file%.xml}"
-        page="${page#$out_dir/}"
         # to become independent of whether and what
         # namespace prefix is used for PAGE-XML,
         # we first have to know the namespace:
@@ -182,4 +172,12 @@ fi
                    -u "/pc:PcGts/pc:Page/@imageFilename" \
                    -v "$page.png" "$file"
     done
+    if test -n "$image_filegrp"; then
+        ocrd workspace find -G "$image_filegrp" ${pages:+-g} $pages -k local_filename -k pageId -k mimetype | while read file page mime; do
+            suff=${MIMETYPES[$mime]}
+            target="$out_dir"/$page${suff:-.png}
+            ((symlink)) && ln -fs "$PWD/$file" "$target" || cp -fu $file "$target"
+            info "copied $suff image for page '$page'"
+        done
+    fi
 )
