@@ -146,8 +146,8 @@ define skeleton =
 
 INPUT = OCR-D-IMG
 
-$(INPUT):
-	ocrd workspace find -G $@ --download
+$$(INPUT):
+	ocrd workspace find -G $$@ --download
 
 OUTPUT = foo
 $$(OUTPUT): $$(INPUT)
