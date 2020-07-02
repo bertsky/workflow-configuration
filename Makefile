@@ -221,9 +221,10 @@ $(WORKSPACES:%=view/%): view/%: %
 	ocrd workspace -d $< prune-files
 # bag, but do no zip yet (because we must still filter and path prefixing and filename suffixing):
 	ocrd -l WARN zip bag -d $< -i $(@:%/data=%) -Z $(@:%/data=%)
-	$(MAKE) -R -C $(@:%/data=%)/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) view
+	$(MAKE) -R -C $(@:%/data=%)/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) prune-view
 # bag again and zip:
 	ocrd -l WARN zip bag -d $(@:%/data=%)/data -i $(@:%/data=%) $(@:%/data=%).zip
+	@echo new workspace can be viewed under $(@:%/data=%)/data or $(@:%/data=%).zip
 
 .PHONY: view $(WORKSPACES:%=view/%)
 
@@ -326,33 +327,28 @@ export VECLIB_MAXIMUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export NUMEXPR_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 
 view:
+# clone into a new directory
+	@mkdir -p view
+# delete local file IDs not existing in the filesystem:
+	ocrd workspace prune-files
+# bag, but do no zip yet (because we must still filter and path prefixing and filename suffixing):
+	ocrd -l WARN zip bag -i $(notdir $(CURDIR:%/data=%)) -Z view
+	$(MAKE) -R -C view/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) prune-view
+	@echo new workspace can be viewed under view/data
+
+prune-view:
 # filter out file groups we do not need for current configuration:
 	ocrd workspace remove-group -fr $$(ocrd workspace list-group | \
 		fgrep -xv -f <(LC_MESSAGES=C \
 			$(MAKE) -R -nd -I $(CONFIGDIR) -f $(CONFIGURATION) |& \
 			fgrep -e 'Considering target file' -e 'Trying rule prerequisite' | \
 			cut -d\' -f2 | { cat; echo OCR-D-IMG* | tr ' ' '\n'; }))
-# change imageFilename paths from METS-relative to PAGE-relative for JPageViewer,
-# also ensure all files have valid filename suffixes:
+# change imageFilename paths from METS-relative to PAGE-relative for JPageViewer:
 	ocrd workspace find -m application/vnd.prima.page+xml | \
 		while read name; do \
 		test -f $$name || continue; \
 		sed -i 's|imageFilename="\([^/]\)|imageFilename="../\1|' $$name; \
-		namespace=$$(xmlstarlet sel -t -m '/*[1]' -v 'namespace-uri()' $$name); \
-		xmlstarlet --no-doc-namespace ed --inplace -N pc="$$namespace" \
-			-u '/pc:PcGts/pc:Page/@imageFilename[contains(.,"OCR-D-IMG/") and not(contains(.,".tif"))]' \
-			-x 'concat(.,".tif")' $$name; \
-		done; \
-		xmlstarlet sel -N mets=http://www.loc.gov/METS/ -t \
-			-v '//mets:fileGrp[@USE="OCR-D-IMG"]/mets:file/mets:FLocat/@xlink:href[not(contains(.,".tif"))]' \
-			mets.xml | \
-		while read name; do \
-		test -f $$name || continue; \
-		mv $$name $$name.tif; \
-		done; \
-		xmlstarlet ed --inplace -N mets=http://www.loc.gov/METS/ \
-			-u '//mets:fileGrp[@USE="OCR-D-IMG"]/mets:file/mets:FLocat/@xlink:href[not(contains(.,".tif"))]' \
-			-x 'concat(.,".tif")' mets.xml
+		done
 	@find . -type d -empty -delete
 
 repair:
@@ -376,7 +372,7 @@ repair:
 		done; \
 	done
 
-.PHONY: view repair info
+.PHONY: view prune-view repair info
 
 # prevent parallel execution of recipes within one workspace
 # (because that would require FS synchronization on the METS,
