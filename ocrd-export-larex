@@ -164,6 +164,7 @@ fi
         if ((${#typemap[*]})); then
             for xpath in ${!typemap[*]}; do
                 xmlstarlet --no-doc-namespace ed --inplace -N "pc=${namespace}" \
+                   -s "//${ns_prefix}TextRegion[not(@type)]" -t attr -n type -v other \
                    -u "//${ns_prefix}TextRegion[$xpath]/@type" -v "${typemap[$xpath]}" \
                    "$file"
             done
