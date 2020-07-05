@@ -84,7 +84,8 @@ help:
 	@echo "  * info (short self-description of the selected configuration)"
 	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
 	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
-	@echo "  * all (build all of the following workspaces...)"
+	@echo "  * larex (build default target plus LAREX export in all of the workspaces)"
+	@echo "  * all (build default target in all of the following workspaces...)"
 	@for workspace in $(WORKSPACES); do echo "  * $$workspace"; done
 	@echo
 	@echo "  Makefiles (i.e. configurations; select via '-f CONFIGURATION.mk')"
@@ -228,6 +229,11 @@ $(WORKSPACES:%=view/%): view/%: %
 
 .PHONY: view $(WORKSPACES:%=view/%)
 
+larex:
+	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) larex 2>&1 | tee $@.$(CONFIGNAME).log
+
+.PHONY: larex
+
 else
 ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # we are inside workspace during recursive make
@@ -326,6 +332,7 @@ export OPENBLAS_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export VECLIB_MAXIMUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export NUMEXPR_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 
+# define JPageViewer export target on top of workflow
 view:
 # clone into a new directory
 	@mkdir -p view
@@ -350,6 +357,18 @@ prune-view:
 		sed -i 's|imageFilename="\([^/]\)|imageFilename="../\1|' $$name; \
 		done
 	@find . -type d -empty -delete
+
+# define LAREX export target on top of workflow
+larex: $(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX
+
+$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX: $(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP
+$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX: TOOL = ocrd-export-larex
+
+# redefine imageFilename from cropped/deskewed page
+$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP: $(.DEFAULT_GOAL:%-CROP-LAREX=%)
+$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP: TOOL = ocrd-segment-replace-original
+
+.PHONY: larex
 
 repair:
 # repair badly published workspaces:
