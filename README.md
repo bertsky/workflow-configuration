@@ -39,7 +39,7 @@ To install system dependencies for this package, run...
 make deps-ubuntu
 ```
 
-...in a priviledged context for Ubuntu (like a Docker container).
+...in a privileged context for Ubuntu (like a Docker container).
 
 Or equivalently, install the following packages:
 - `parallel` (GNU parallel)

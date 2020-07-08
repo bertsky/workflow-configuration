@@ -36,7 +36,7 @@ with options:
  -O|--output-directory DIR     Directory used as output
  -g|--page-id ID               Physical page ID(s) to limit to
  -l|--log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE] Log level
- -s|--symlink                  Try to symlink images intead of copying
+ -s|--symlink                  Try to symlink images instead of copying
  -t|--map-type XPATH EXPR      Additional TextRegion @type mapping to apply
                                (default: ($(for key in ${!typemap[*]}; do echo "['$key']='${typemap[$key]}'"; done)))
 
