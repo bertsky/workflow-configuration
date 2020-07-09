@@ -126,7 +126,7 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
         case "$suffix" in
             .pdf|.PDF)
                 inopts=(-density $((2*$dpi)) -units PixelsPerInch)
-                outopts=(-background white -alpha remove -alpha off -resample $dpi)
+                outopts=(-background white -alpha remove -alpha off -resample $dpi -density $dpi -units PixelsPerInch)
                 ;;
             *)
                 inopts=()
