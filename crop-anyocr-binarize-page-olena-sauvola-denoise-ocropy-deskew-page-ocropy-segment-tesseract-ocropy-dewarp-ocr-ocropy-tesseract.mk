@@ -102,9 +102,9 @@ $(DEW): TOOL = ocrd-cis-ocropy-dewarp
 OCR1 = OCR-D-OCR-OCRO-fraktur-$(DEW:OCR-D-%=%)
 OCR2 = OCR-D-OCR-OCRO-frakturjze-$(DEW:OCR-D-%=%)
 OCR3 = OCR-D-OCR-TESS-Fraktur-$(DEW:OCR-D-%=%)
-OCR4 = OCR-D-OCR-TESS-Fraktur+Latin-$(DEW:OCR-D-%=%)
+OCR4 = OCR-D-OCR-TESS-Fraktur-Latin-$(DEW:OCR-D-%=%)
 OCR5 = OCR-D-OCR-TESS-frk-$(DEW:OCR-D-%=%)
-OCR6 = OCR-D-OCR-TESS-frk+deu-$(DEW:OCR-D-%=%)
+OCR6 = OCR-D-OCR-TESS-frk-deu-$(DEW:OCR-D-%=%)
 OCR7 = OCR-D-OCR-TESS-gt4histocr-$(DEW:OCR-D-%=%)
 OCR8 = OCR-D-OCR-CALA-gt4histocr-$(DEW:OCR-D-%=%)
 
