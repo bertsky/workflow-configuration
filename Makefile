@@ -304,8 +304,8 @@ ifneq ($(shell which nvidia-smi),)
 ifneq ($(shell which sem),)
 NGPUS = $(shell nvidia-smi -L | wc -l)
 define gputoolrecipe =
-if sem --id OCR-D-GPUSEM -j $(NGPUS) --st -3 true 2>/dev/null; then \
-   sem --id OCR-D-GPUSEM -j $(NGPUS) --fg $(toolrecipe); else \
+if sem --nn --id OCR-D-GPUSEM -j $(NGPUS) --st -3 true 2>/dev/null; then \
+   sem --nn --id OCR-D-GPUSEM -j $(NGPUS) --fg $(toolrecipe); else \
    CUDA_VISIBLE_DEVICES= $(toolrecipe); fi
 endef
 else
