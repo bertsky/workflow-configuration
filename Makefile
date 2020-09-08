@@ -297,7 +297,7 @@ comma = ,
 define toolrecipe =
 	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
 	-I $(subst $(space),$(comma),$^) -p $@.json \
-	-O $@ --overwrite 2>&1 | tee $@.log && \
+	-O $@ --overwrite $(OPTIONS) 2>&1 | tee $@.log && \
 	touch -c $(subst $(comma),$(space),$@) || { \
 	$(if $(wildcard $(firstword $(subst $(comma),$(space),$@))), \
 	     touch -c -d "$(shell date -Ins -r $(firstword $(subst $(comma),$(space),$@)))" \
@@ -326,6 +326,7 @@ endif
 %: TOOL =
 %: GPU =
 %: PARAMS =
+%: OPTIONS =
 %:
 	@$(if $(and $(TOOL),$<),echo "building $@ from $< with pattern rule for $(TOOL)",$(MAKE) -R -f /dev/null $@)
 	$(file > $@.json, { $(PARAMS) })
@@ -341,6 +342,7 @@ export OMP_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export OPENBLAS_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export VECLIB_MAXIMUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export NUMEXPR_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
+# FIXME: how about multiprocessing/threading in Tensorflow?
 
 # define JPageViewer export target on top of workflow
 view:

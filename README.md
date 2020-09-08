@@ -163,7 +163,7 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 - Change/customize at least the `info` target, and the `INPUT` and `OUTPUT` name/rule.
 - Copy/paste rules from the existing configurations.
 - Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
-- Try to utilise the provided static pattern rule (which takes the target as output file group and the prerequisite as input file group) for all processing steps. The rule covers any OCR-D compliant processor with no more than 1 output file group. Use it by simply defining the target-specific variable `TOOL` (and optionally `PARAMS`) and giving no recipe whatsoever.
+- Try to utilise the provided static pattern rule (which takes the target as output file group and the prerequisite as input file group) for all processing steps. The rule covers any OCR-D compliant processor with no more than 1 output file group. Use it by simply defining the target-specific variable `TOOL` (and optionally `PARAMS` or `OPTIONS`) and giving no recipe whatsoever.
 - When any of your processors use GPU resources, you must prevent races for GPU memory during parallel execution.
   
   You can achieve this by simply setting `GPU = 1` for that target when using the static pattern rule, or by using `sem --id OCR-D-GPUSEM` when writing your own recipes.
@@ -190,12 +190,16 @@ BIN = $(INPUT)-BINPAGE
 $(BIN): $(INPUT)
 $(BIN): TOOL = ocrd-olena-binarize
 $(BIN): PARAMS = "impl": "sauvola-ms-split"
+# or equivalently:
+$(BIN): OPTIONS = -P impl sauvola-ms-split
 
 OCR = OCR-D-OCR-TESS
 
 $(OCR): $(BIN)
 $(OCR): TOOL = ocrd-tesserocr-recognize
 $(OCR): PARAMS = "textequiv_level": "glyph", "model": "frk+deu"
+# or equivalently:
+$(OCR): OPTIONS = -P textequiv_level glyph -P model frk+deu
 
 OUTPUT = EVAL
 
@@ -310,7 +314,7 @@ However, this result is still _preliminary_. Both the processor implementations 
 
 ### Implementation
 
-To make writing (and reading) configurations as simple as possible, they are expressed as rules operating on METS file groups (i.e. workspace-local). For convenience, the most common recipe pattern involving only 1 input and 1 output file group via some OCR-D CLI is available via static pattern rule, which merely takes the target-specific variables `TOOL` (the CLI executable) and optionally `PARAMS` (a comma-separated list of parameter assignments). Custom rules are possible as well. If the makefile does not start with the overall target, it must specify its `.DEFAULT_GOAL`, so callers can run without knowledge of the target names.
+To make writing (and reading) configurations as simple as possible, they are expressed as rules operating on METS file groups (i.e. workspace-local). For convenience, the most common recipe pattern involving only 1 input and 1 output file group via some OCR-D CLI is available via static pattern rule, which merely takes the target-specific variables `TOOL` (the CLI executable) and optionally `PARAMS` (a JSON-formatted list of parameter assignments) or `OPTIONS` (a white-space separated list of parameter assignments). Custom rules are possible as well. If the makefile does not start with the overall target, it must specify its `.DEFAULT_GOAL`, so callers can run without knowledge of the target names.
 
 Rules that are not configuration-specific (like the static pattern rule) are all shared by including a common `Makefile` at the end of configuration makefiles. That file has 2 sets of rules:
 - a top-level set operating in the target directory (possibly in parallel),
