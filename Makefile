@@ -281,8 +281,16 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # we must concatenate this space delimited list with the OCR-D
 # comma syntax for multiple file groups.
 #
-# FIXME: However, this does not yet cover multiple output file groups
-# (and ignoring them will give side effects!)
+# FIXME: This currently uses wild contortions to allow multiple output file groups.
+#        (You have to run with a phony target in comma-concatenated form
+#         to avoid interpreting them as multiple independent targets, but then need
+#         an auxiliary rule connecting that form to its constituent directories.
+#         Below recipe became unreadable due to the many space/comma substitutions.)
+# usage example:
+# OUT1,OUT2: IN
+# OUT1,OUT2: TOOL = ocrd-tool-name
+# .PHONY: OUT1,OUT2
+# OUT1 OUT2: OUT1,OUT2 ; touch -c $@
 
 space = $() $()
 comma = ,
@@ -290,8 +298,11 @@ define toolrecipe =
 	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
 	-I $(subst $(space),$(comma),$^) -p $@.json \
 	-O $@ --overwrite 2>&1 | tee $@.log && \
-	touch -c $@ || { \
-	$(if $(wildcard $@),touch -c -d "$(shell date -Ins -r $@)" $@,rm -fr $@); false; }
+	touch -c $(subst $(comma),$(space),$@) || { \
+	$(if $(wildcard $(firstword $(subst $(comma),$(space),$@))), \
+	     touch -c -d "$(shell date -Ins -r $(firstword $(subst $(comma),$(space),$@)))" \
+		$(subst $(comma),$(space),$@), \
+	     rm -fr $(subst $(comma),$(space),$@)); false; }
 endef
 # Extra recipe to control allocation of GPU resources
 # (for processors explicitly configured as CUDA-enabled):
