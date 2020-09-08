@@ -287,12 +287,11 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 space = $() $()
 comma = ,
 define toolrecipe =
-STAMP=`test -e $@ && date -Ins -r $@`; \
 	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
 	-I $(subst $(space),$(comma),$^) -p $@.json \
 	-O $@ --overwrite 2>&1 | tee $@.log && \
 	touch -c $@ || { \
-	if test -z "$$STAMP"; then rm -fr $@; else touch -c -d "$$STAMP" $@; fi; false; }
+	$(if $(wildcard $@),touch -c -d "$(shell date -Ins -r $@)" $@,rm -fr $@); false; }
 endef
 # Extra recipe to control allocation of GPU resources
 # (for processors explicitly configured as CUDA-enabled):
