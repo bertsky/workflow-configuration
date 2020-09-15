@@ -175,6 +175,13 @@ ifneq ($(strip $(WORKSPACES)),)
 # we are in the top-level directory
 .DEFAULT_GOAL = all # overwrite configuration's default for workspaces
 
+# use --keep-going on top level (workspaces are independent of each other)
+# (does not affect command-line choices; these will be automatically added
+#  by make via MAKEOVERRIDES)
+# will be suppressed unconditionally for recursive level below
+# (since processors and recipe steps depend on each other)
+MAKEFLAGS = k
+
 # suppress built-in pattern rules (we are not compiling source code):
 .SUFFIXES:
 
@@ -202,14 +209,14 @@ all: $(WORKSPACES)
 	@echo "all done with $(CONFIGNAME)"
 
 $(WORKSPACES):
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) 2>&1 | tee $@.$(CONFIGNAME).log
+	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) 2>&1 | tee $@.$(CONFIGNAME).log
 
 .PHONY: all $(WORKSPACES)
 
 repair: $(WORKSPACES:%=repair-%)
 
 $(WORKSPACES:%=repair-%):
-	$(MAKE) -R -C $(@:repair-%=%) -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) repair
+	$(MAKE) -R -C $(@:repair-%=%) -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) repair
 
 .PHONY: repair $(WORKSPACES:%=repair-%)
 
@@ -230,7 +237,7 @@ $(WORKSPACES:%=view/%): view/%: %
 .PHONY: view $(WORKSPACES:%=view/%)
 
 larex:
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) larex 2>&1 | tee $@.$(CONFIGNAME).log
+	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) larex 2>&1 | tee $@.$(CONFIGNAME).log
 
 .PHONY: larex
 
