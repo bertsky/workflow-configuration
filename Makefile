@@ -335,7 +335,7 @@ endif
 %: PARAMS =
 %: OPTIONS =
 %:
-	@$(if $(and $(TOOL),$<),echo "building $@ from $< with pattern rule for $(TOOL)",$(MAKE) -R -f /dev/null $@)
+	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 
