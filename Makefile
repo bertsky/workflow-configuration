@@ -424,6 +424,7 @@ endif # (if inside workspace)
 endif # (if found workspaces)
 
 # do not search for implicit rules here:
-Makefile: ;
+%/Makefile: ;
+$(CONFIGURATION): ;
 EXISTING_MAKEFILES := $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
 $(EXISTING_MAKEFILES): ;
