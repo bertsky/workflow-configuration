@@ -209,7 +209,7 @@ all: $(WORKSPACES)
 	@echo "all done with $(CONFIGNAME)"
 
 $(WORKSPACES):
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) 2>&1 | tee $@.$(CONFIGNAME).log
+	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) 2>&1 | tee -a $@.$(CONFIGNAME).log
 
 .PHONY: all $(WORKSPACES)
 
@@ -237,7 +237,7 @@ $(WORKSPACES:%=view/%): view/%: %
 .PHONY: view $(WORKSPACES:%=view/%)
 
 larex:
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) larex 2>&1 | tee $@.$(CONFIGNAME).log
+	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) larex 2>&1 | tee -a $@.$(CONFIGNAME).log
 
 .PHONY: larex
 
