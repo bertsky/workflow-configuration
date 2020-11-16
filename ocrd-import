@@ -82,9 +82,10 @@ if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"
 fi
 
 # sub-shell to back-off from mets.xml and subdir in case of failure:
+set +e
 (
+set -e
 cd "$DIRECTORY"
-mkdir -p OCR-D-IMG
 ocrd workspace init .
 num=0 zeros=0000
 find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
@@ -195,4 +196,7 @@ done
     exit 2
 }
 
+# ensure these exist in the file system, too
+# (useful for ocrd-make)
+mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
 info "Success on '$DIRECTORY'"
