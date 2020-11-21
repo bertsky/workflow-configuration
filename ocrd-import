@@ -115,6 +115,9 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
            && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
+            if !((numpageid)); then
+                base=${base/OCR-D-IMG/$group}
+            fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
             continue
