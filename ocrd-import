@@ -137,6 +137,7 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
                 outopts=()
         esac
         if (($convert)) && \
+               mkdir -p OCR-D-IMG && \
                warning "converting '$file' to 'OCR-D-IMG/${base}.*.tif' prior to import" && \
                convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}.%04d.tif"; then
             mimetype=image/tiff
