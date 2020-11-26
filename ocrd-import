@@ -194,13 +194,14 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
 done
+
+# ensure these exist in the file system, too
+# (useful for ocrd-make)
+mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
 ) || {
     rm "$DIRECTORY"/mets.xml
     critical "Cancelled '$DIRECTORY'"
     exit 2
 }
 
-# ensure these exist in the file system, too
-# (useful for ocrd-make)
-mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
 info "Success on '$DIRECTORY'"
