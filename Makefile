@@ -82,6 +82,7 @@ help:
 	@echo "  Targets (data processing):"
 	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
 	@echo "  * info (short self-description of the selected configuration)"
+	@echo "  * show (print command sequence that would be executed for the selected configuration)"
 	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
 	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
 	@echo "  * larex (build default target plus LAREX export in all of the workspaces)"
@@ -102,6 +103,11 @@ help:
 	@echo "    (if unset, then all pages will be processed)"
 
 .PHONY: help
+
+show: $(info ocrd process --overwrite $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)))
+show: $(.DEFAULT_GOAL) ; @echo
+
+.PHONY: show
 
 deps-ubuntu:
 	apt-get -y install parallel xmlstarlet bc sed
@@ -169,7 +175,6 @@ export skeleton
 
 %.mk:
 	@echo >$@ "$$skeleton"
-
 
 ifneq ($(strip $(WORKSPACES)),)
 # we are in the top-level directory
@@ -334,10 +339,15 @@ endif
 %: GPU =
 %: PARAMS =
 %: OPTIONS =
+ifeq ($(MAKECMDGOALS),show)
+%:
+	$(info '$(TOOL:ocrd-%=%) -I $(subst $(space),$(comma),$^) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)')
+else
 %:
 	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
+endif
 
 # suppress other multiscalar mechanisms in parallel mode
 # (mostly related to Python numpy and Tesseract OpenMP:)
@@ -417,7 +427,7 @@ repair:
 # and would make multi-output recipes harder to write):
 .NOTPARALLEL:
 else # (if not found workspaces and not inside workspace)
-ifeq ($(filter help info deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help info show deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)" or among "$(MAKECMDGOALS)")
 endif # (if pseudo-target)
 endif # (if inside workspace)
@@ -425,6 +435,7 @@ endif # (if found workspaces)
 
 # do not search for implicit rules here:
 %/Makefile: ;
+Makefile: ;
 $(CONFIGURATION): ;
 EXISTING_MAKEFILES := $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
 $(EXISTING_MAKEFILES): ;

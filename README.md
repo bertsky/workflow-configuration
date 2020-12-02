@@ -35,9 +35,9 @@ Contents:
 ### Dependencies
 
 To install system dependencies for this package, run...
-```bash
-make deps-ubuntu
-```
+
+    make deps-ubuntu
+
 
 ...in a privileged context for Ubuntu (like a Docker container).
 
@@ -60,9 +60,9 @@ Simply copy or symlink all makefiles (i.e. both the specific workflow configurat
 (The target directory is the directory where your OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
 
 You can then run workflows in the target directory by calling...
-```bash
-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
-```
+
+    make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
+
 
 ...where
 - _OPTIONS_ are the usual options controlling GNU make (e.g. `-j` for parallel processing).
@@ -72,16 +72,16 @@ make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
 #### For invocation via shell script
 
 Run...
-```bash
-make install
-```
+
+    make install
+
 
 ... if you are in a (Python) virtual environment. Otherwise specify the installation prefix directory via environment variable `VIRTUAL_ENV`.
 
 Assuming `$VIRTUAL_ENV/bin` is in your `PATH`, you can now call...
-```bash
-ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
-```
+
+    ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
+
 
 ... in the target directory with the same interface as above (only without the need for copying makefiles).
 
@@ -96,60 +96,95 @@ To run a configuration...
    (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
 
-```bash
-[ocrd-]make -f CONFIGURATION.mk [all]
-```
+
+    [ocrd-]make -f CONFIGURATION.mk [all]
+
 (The special target `all` (which is also the default goal) will look for all workspaces in the current directory.)
 
 You can also run on a subset of workspaces by passing these as goals on the command line...
-```bash
-[ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
-```
+
+    [ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
+
 
 To get help:
-```bash
-[ocrd-]make help
-```
+
+    [ocrd-]make help
+
 
 To get a short description of the chosen configuration:
-```bash
-[ocrd-]make -f CONFIGURATION.mk info
-```
+
+    [ocrd-]make -f CONFIGURATION.mk info
+
+
+To see the command sequence that would be executed for the chosen configuration (in the format of `ocrd process`):
+
+    [ocrd-]make -f CONFIGURATION.mk show
+
 
 To remove the configuration makefiles in the current/target directory:
-```bash
-[ocrd-]make clean
-```
+
+    [ocrd-]make clean
+
 
 To prepare workspaces for processing by fixing certain flaws that kept happening during publication:
-```bash
-[ocrd-]make repair
-```
+
+    [ocrd-]make repair
+
 
 To create workspaces from directories which contain image files:
-```bash
-ocrd-import DIRECTORY
-```
+
+    ocrd-import DIRECTORY
+
 
 To get help for the import tool:
-```bash
-ocrd-import --help
-```
+
+    ocrd-import --help
+
 
 To derive flat directories from workspaces suitable for LAREX annotation:
-```bash
-ocrd-export-larex -I FILEGRP -O DIR
-```
+
+    ocrd-export-larex -I FILEGRP -O DIR
+
 
 To get help for the LAREX export tool:
-```bash
-ocrd-export-larex --help
-```
+
+    ocrd-export-larex --help
+
 
 To spawn a new configuration file:
-```
-[ocrd-]make NEW-CONFIGURATION.mk
-```
+
+    [ocrd-]make NEW-CONFIGURATION.mk
+
+
+Furthermore, you can add any options that `make` understands (see `make --help` or `info make 'Options Summary'`). For example,
+- `-n` or `--dry-run` to just simulate the run
+- `-q` or `--question` to just check whether anything needs to be built at all
+- `-s` or `--silent` to suppress echoing recipes
+- `-j` or `--jobs` to run on workspaces in parallel
+- `-B` or `--always-make` to consider all targets out-of-date (i.e. unconditionally rebuild)
+
+Note, that because workspaces are built by recursive invocation, and `make` does not pass on those `MAKEFLAGS` which can affect dependency calculation, you cannot _directly_ use the following options:
+- `-o` or `--old-file` to consider some target up-to-date w.r.t. its prerequisites (i.e. unconditionally keep) but older than its dependents (i.e. unconditionally ignore)
+- `-W` or `--new-file` to consider some target newer than its dependents (i.e. unconditionally update them)
+
+However, you can wrap them in a special variable __`EXTRA_MAKEFLAGS`__ which gets expanded at the workspace level. For example, to rebuild anything _after_ the fileGrp `OCR-D-BIN`, do:
+
+    [ocrd-]make -f CONFIGURATION.mk all EXTRA_MAKEFLAGS="-W OCR-D-BIN"
+
+You can also use that variable to specify any other than the `.DEFAULT_GOAL` of your configuration as the overall target. For example, to build anything _up to_ the fileGrp `OCR-D-SEG-LINE`, do:
+
+    [ocrd-]make -f CONFIGURATION.mk all EXTRA_MAKEFLAGS="OCR-D-SEG-LINE"
+
+(If you chdir into some workspace yourself, `make` won't run recursively, so no `all` target exists and no `EXTRA_MAKEFLAGS` is necessary.)
+
+There are 2 more special variables besides `EXTRA_MAKEFLAGS`. To process only a subset of pages in all fileGrps, use `PAGES`. For example, to only consider pages `PHYS_0005` and `PHYS_0007`, do:
+
+    [ocrd-]make -f CONFIGURATION.mk all PAGES=PHYS_0005,PHYS_0007
+
+And to override the default (or configured) log levels for all processors and libraries, use `LOGLEVEL`. For example, to get debugging everywhere, do:
+
+    [ocrd-]make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
+
 
 ### Customisation
 
@@ -179,7 +214,7 @@ $(INPUT):
 	ocrd workspace find -G $@ --download
 	ocrd workspace find -G OCR-D-IMG --download # just in case
 
-# You can re-use file group names to keep the rules brief:
+# You can use variables for file group names to keep the rules brief:
 BIN = $(INPUT)-BINPAGE
 
 # This is how you use the pattern rule from Makefile (included below):
@@ -193,26 +228,23 @@ $(BIN): PARAMS = "impl": "sauvola-ms-split"
 # or equivalently:
 $(BIN): OPTIONS = -P impl sauvola-ms-split
 
-OCR = OCR-D-OCR-TESS
-
-$(OCR): $(BIN)
-$(OCR): TOOL = ocrd-tesserocr-recognize
-$(OCR): PARAMS = "textequiv_level": "glyph", "model": "frk+deu"
+# You can also use the file group names directly:
+OCR-D-OCR-TESS: $(BIN)
+OCR-D-OCR-TESS: TOOL = ocrd-tesserocr-recognize
+OCR-D-OCR-TESS: PARAMS = "textequiv_level": "glyph", "model": "frk+deu"
 # or equivalently:
-$(OCR): OPTIONS = -P textequiv_level glyph -P model frk+deu
-
-OUTPUT = EVAL
+OCR-D-OCR-TESS: OPTIONS = -P textequiv_level glyph -P model frk+deu
 
 # This uses more than 1 input file group and no output file group,
 # which works with the standard recipe as well (but mind the ordering):
-$(OUTPUT): $(INPUT) $(OCR)
-$(OUTPUT): TOOL = ocrd-cor-asv-ann-evaluate
+EVAL: $(INPUT) OCR-D-OCR-TESS
+EVAL: TOOL = ocrd-cor-asv-ann-evaluate
 
 # Because the first target in this file was $(BIN),
 # we must override the default goal to be our desired overall target:
-.DEFAULT_GOAL = $(OUTPUT)
+.DEFAULT_GOAL = EVAL
 
-# Always necessary:
+# ALWAYS necessary:
 include Makefile
 ```
 
