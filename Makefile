@@ -37,6 +37,8 @@ SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
 # (because we must remove via METS):
 .SECONDARY:
 
+.EXPORT_ALL_VARIABLES:
+
 # remove all failed targets, so we can re-enter
 # (this does not work in GNU make -- #16372):
 #.DELETE_ON_ERROR:
@@ -106,7 +108,13 @@ help:
 
 show: $(.DEFAULT_GOAL)
 
-.PHONY: show
+export PATH VIRTUAL_ENV
+server: PORT ?= 5000
+server:
+	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'//gp")); \
+	nohup ocrd workflow server -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log &
+
+.PHONY: show server
 
 deps-ubuntu:
 	apt-get -y install parallel xmlstarlet bc sed
@@ -175,7 +183,7 @@ export skeleton
 %.mk:
 	@echo >$@ "$$skeleton"
 
-ifneq ($(if $(filter info show deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),,$(strip $(WORKSPACES))),)
+ifneq ($(if $(filter info show server deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),,$(strip $(WORKSPACES))),)
 # we are in the top-level directory
 .DEFAULT_GOAL = all # overwrite configuration's default for workspaces
 
@@ -428,7 +436,7 @@ repair:
 # and would make multi-output recipes harder to write):
 .NOTPARALLEL:
 else # (if not found workspaces and not inside workspace)
-ifeq ($(filter help info show deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help info show server deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)" or among "$(MAKECMDGOALS)")
 endif # (if pseudo-target)
 endif # (if inside workspace)
