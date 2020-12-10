@@ -104,8 +104,7 @@ help:
 
 .PHONY: help
 
-show: $(info ocrd process --overwrite $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)))
-show: $(.DEFAULT_GOAL) ; @echo
+show: $(.DEFAULT_GOAL)
 
 .PHONY: show
 
@@ -176,7 +175,7 @@ export skeleton
 %.mk:
 	@echo >$@ "$$skeleton"
 
-ifneq ($(strip $(WORKSPACES)),)
+ifneq ($(if $(filter info show deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),,$(strip $(WORKSPACES))),)
 # we are in the top-level directory
 .DEFAULT_GOAL = all # overwrite configuration's default for workspaces
 
@@ -247,7 +246,7 @@ larex:
 .PHONY: larex
 
 else
-ifneq ($(wildcard $(CURDIR)/mets.xml),)
+ifneq ($(if $(filter info show,$(MAKECMDGOALS)),true,$(wildcard $(CURDIR)/mets.xml)),)
 # we are inside workspace during recursive make
 
 # All operations use the normal date stamping to determine
@@ -340,6 +339,8 @@ endif
 %: PARAMS =
 %: OPTIONS =
 ifeq ($(MAKECMDGOALS),show)
+# prevent any existing recipes to be executed
+override MAKEFLAGS = n
 %:
 	$(info '$(TOOL:ocrd-%=%) -I $(subst $(space),$(comma),$^) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)')
 else
