@@ -111,7 +111,7 @@ show: $(.DEFAULT_GOAL)
 export PATH VIRTUAL_ENV
 server: PORT ?= 5000
 server:
-	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'//gp")); \
+	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'$$//;s/^'ocrd-//p")); \
 	nohup ocrd workflow server -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log &
 
 .PHONY: show server
@@ -350,7 +350,7 @@ ifeq ($(MAKECMDGOALS),show)
 # prevent any existing recipes to be executed
 override MAKEFLAGS = n
 %:
-	$(info '$(TOOL:ocrd-%=%) -I $(subst $(space),$(comma),$^) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)')
+	$(if $(and $(TOOL),$<),$(info '$(TOOL) -I $(subst $(space),$(comma),$^) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)'))
 else
 %:
 	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
