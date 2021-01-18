@@ -85,6 +85,7 @@ help:
 	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
 	@echo "  * info (short self-description of the selected configuration)"
 	@echo "  * show (print command sequence that would be executed for the selected configuration)"
+	@echo "  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')"
 	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
 	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
 	@echo "  * larex (build default target plus LAREX export in all of the workspaces)"
@@ -112,7 +113,7 @@ export PATH VIRTUAL_ENV
 server: PORT ?= 5000
 server:
 	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'$$//;s/^'ocrd-//p")); \
-	nohup ocrd workflow server -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log &
+	ocrd workflow server -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log
 
 .PHONY: show server
 
