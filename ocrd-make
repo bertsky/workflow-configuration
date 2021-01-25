@@ -25,7 +25,8 @@ function process {
             local src="$SHAREDIR/$f"
             local dst="$CURDIR/$f"
             if [[ ! -e "$dst" || "$src" -nt "$dst" ]];then
-                ln -s "$src" "$dst" 2>/dev/null || cp -f "$src" "$dst"
+                # for broken symlinks cp -f is not enough:
+                ln -s "$src" "$dst" 2>/dev/null || cp --remove-destination -f "$src" "$dst"
             fi
         done
         make -C "$CURDIR" "$@"

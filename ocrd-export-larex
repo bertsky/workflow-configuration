@@ -129,7 +129,7 @@ fi
         out_dir=larex
         debug "using --output-directory '$PWD/larex'"
     else
-        out_dir=$(realpath --relative-to=$OLDPWD "$out_dir")
+        out_dir=$(realpath --relative-to="$OLDPWD" "$out_dir")
     fi
     mkdir -p "$out_dir"
     if test -z "$page_filegrp"; then

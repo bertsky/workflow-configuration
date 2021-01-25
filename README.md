@@ -96,8 +96,7 @@ To run a configuration...
    (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
 
-
-    [ocrd-]make -f CONFIGURATION.mk [all]
+        [ocrd-]make -f CONFIGURATION.mk [all]
 
 (The special target `all` (which is also the default goal) will look for all workspaces in the current directory.)
 

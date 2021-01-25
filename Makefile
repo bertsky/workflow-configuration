@@ -110,7 +110,8 @@ help:
 show: $(.DEFAULT_GOAL)
 
 export PATH VIRTUAL_ENV
-server: PORT ?= 5000 HOST ?= 127.0.0.1
+server: PORT ?= 5000
+server: HOST ?= 127.0.0.1
 server:
 	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'$$//;s/^'ocrd-//p")); \
 	ocrd workflow server -h $(HOST) -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log
