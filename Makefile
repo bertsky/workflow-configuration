@@ -47,6 +47,9 @@ SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
 # also, fail on failed intermediates as well:
 SHELL = bash -o pipefail
 
+# opt-in for any specific rules in the workspace/datadir FS
+-include local.mk
+
 CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
 
 CONFIGDIR := $(dir $(CONFIGURATION))
@@ -447,6 +450,7 @@ endif # (if found workspaces)
 # do not search for implicit rules here:
 %/Makefile: ;
 Makefile: ;
+local.mk: ;
 $(CONFIGURATION): ;
 EXISTING_MAKEFILES := $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
 $(EXISTING_MAKEFILES): ;
