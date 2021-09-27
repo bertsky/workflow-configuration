@@ -55,7 +55,7 @@ CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
 CONFIGDIR := $(dir $(CONFIGURATION))
 CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
-WORKSPACES := $(patsubst %/mets.xml,%,$(shell find -L . -mindepth 2 -name mets.xml -printf "%P\n"))
+WORKSPACES := $(patsubst %/mets.xml,%,$(shell find -L . -mindepth 2 -path "./*.backup/*" -prune -o -name mets.xml -printf "%P\n"))
 
 ifeq ($(filter help clean cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
