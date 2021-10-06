@@ -88,7 +88,7 @@ set -e
 cd "$DIRECTORY"
 ocrd workspace init .
 num=0 zeros=0000
-find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
+find -L . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
     let num++
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -108,7 +108,7 @@ find . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; 
         # prevent ID clashes by using numeric IDs
         base=${group}_"$base"
     fi
-    mimetype=${MIMETYPES[$suffix]}
+    mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
     case "$mimetype" in
         ${MIMETYPE_PAGE})
         # FIXME should really validate this is PAGE-XML (cf. core#353)
