@@ -88,7 +88,7 @@ set -e
 cd "$DIRECTORY"
 ocrd workspace init .
 num=0 zeros=0000
-find -L . -type f -not -name mets.xml -not -name "*.log" | sort | while read file; do
+for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
     let num++
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -199,7 +199,7 @@ done
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
 ) || {
-    rm "$DIRECTORY"/mets.xml
+    rm -f "$DIRECTORY"/mets.xml
     critical "Cancelled '$DIRECTORY'"
     exit 2
 }
