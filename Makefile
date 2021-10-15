@@ -55,6 +55,9 @@ CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
 CONFIGDIR := $(dir $(CONFIGURATION))
 CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
+EXISTING_MAKEFILES = $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
+EXISTING_TRANSFORMS = $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.xsl))
+
 WORKSPACES := $(patsubst %/mets.xml,%,$(shell find -L . -mindepth 2 -path "./*.backup/*" -prune -o -name mets.xml -printf "%P\n"))
 
 ifeq ($(filter help clean cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
@@ -91,7 +94,6 @@ help:
 	@echo "  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')"
 	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
 	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
-	@echo "  * larex (build default target plus LAREX export in all of the workspaces)"
 	@echo "  * all (build default target in all of the following workspaces...)"
 	@for workspace in $(WORKSPACES); do echo "  * $$workspace"; done
 	@echo
@@ -126,13 +128,23 @@ server:
 deps-ubuntu:
 	apt-get -y install parallel xmlstarlet bc sed
 
-install:
-	mkdir -p $(BINDIR) $(SHAREDIR)
-	cp -Lf Makefile $(EXISTING_MAKEFILES) $(SHAREDIR)
-	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < ocrd-make > $(BINDIR)/ocrd-make
-	cp -Lf ocrd-import $(BINDIR)
-	cp -Lf ocrd-export-larex $(BINDIR)
-	chmod +x $(BINDIR)/ocrd-make $(BINDIR)/ocrd-import $(BINDIR)/ocrd-export-larex
+XSLPROGS = $(patsubst %.xsl,%,$(EXISTING_TRANSFORMS))
+PROGS = ocrd-make ocrd-import $(XSLPROGS)
+install-bin: $(PROGS:%=$(BINDIR)/%) | $(BINDIR)
+
+$(PROGS:%=$(BINDIR)/%): $(BINDIR)/%: %
+	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
+	chmod +x $@
+
+$(XSLPROGS:%=$(BINDIR)/%): $(BINDIR)/%: ocrd-page-transform
+	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
+	chmod +x $@
+
+$(BINDIR) $(SHAREDIR):
+	@mkdir $@
+
+install: install-bin | $(SHAREDIR)
+	cp -Lf -t $(SHAREDIR) Makefile $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS)
 
 uninstall:
 	$(RM) $(BINDIR)/ocrd-make
@@ -141,7 +153,7 @@ uninstall:
 clean cleanup:
 	find $(SHAREDIR) \( -name 'Makefile' -or -name '*.mk' \) -exec basename {} \; |xargs rm -v
 
-.PHONY: deps-ubuntu install uninstall cleanup clean
+.PHONY: deps-ubuntu install install-bin uninstall cleanup clean
 
 # spawn a new configuration
 define skeleton =
@@ -254,11 +266,6 @@ $(WORKSPACES:%=view/%): view/%: %
 	@echo new workspace can be viewed under $(@:%/data=%)/data or $(@:%/data=%).zip
 
 .PHONY: view $(WORKSPACES:%=view/%)
-
-larex:
-	$(MAKE) -R -C $@ -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) larex 2>&1 | tee -a $@.$(CONFIGNAME).log
-
-.PHONY: larex
 
 else
 ifneq ($(if $(filter info show,$(MAKECMDGOALS)),true,$(wildcard $(CURDIR)/mets.xml)),)
@@ -403,18 +410,6 @@ prune-view:
 		done
 	@find . -type d -empty -delete
 
-# define LAREX export target on top of workflow
-larex: $(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX
-
-$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX: $(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP
-$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP-LAREX: TOOL = ocrd-export-larex
-
-# redefine imageFilename from cropped/deskewed page
-$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP: $(.DEFAULT_GOAL:%-CROP-LAREX=%)
-$(.DEFAULT_GOAL:%-CROP-LAREX=%)-CROP: TOOL = ocrd-segment-replace-original
-
-.PHONY: larex
-
 repair:
 # repair badly published workspaces:
 # fix MIME type of PAGE-XML files:
@@ -454,5 +449,6 @@ endif # (if found workspaces)
 Makefile: ;
 local.mk: ;
 $(CONFIGURATION): ;
-EXISTING_MAKEFILES := $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
 $(EXISTING_MAKEFILES): ;
+$(EXISTING_TRANSFORMS): ;
+$(PROGS): ;
