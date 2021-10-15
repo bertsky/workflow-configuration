@@ -60,7 +60,7 @@ EXISTING_TRANSFORMS = $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.xsl)
 
 WORKSPACES := $(patsubst %/mets.xml,%,$(shell find -L . -mindepth 2 -path "./*.backup/*" -prune -o -name mets.xml -printf "%P\n"))
 
-ifeq ($(filter help clean cleanup info repair deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
+ifeq ($(filter help clean cleanup info deps-ubuntu install uninstall %.mk,$(MAKECMDGOALS)),)
 ifeq ($(notdir $(MAKEFILE_LIST)),Makefile)
 $(error Did you forget to select a workflow configuration makefile?)
 else
@@ -88,12 +88,9 @@ help:
 	@echo "  *        PWD=$(CURDIR))"
 	@echo
 	@echo "  Targets (data processing):"
-	@echo "  * repair (fix workspaces by ensuring PAGE-XML file MIME types and correct imageFilename)"
 	@echo "  * info (short self-description of the selected configuration)"
 	@echo "  * show (print command sequence that would be executed for the selected configuration)"
 	@echo "  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')"
-	@echo "  * view (clone workspaces into subdirectories view/, filtering file groups for the"
-	@echo "          selected configuration, then prepare PAGE-XML for JPageViewer)"
 	@echo "  * all (build default target in all of the following workspaces...)"
 	@for workspace in $(WORKSPACES); do echo "  * $$workspace"; done
 	@echo
@@ -189,6 +186,8 @@ $$(OUTPUT): $$(INPUT)
 info:
 	@echo "This is a dummy configuration that creates an empty file $$(OUTPUT)"
 
+.PHONY: info
+
 .DEFAULT_GOAL = $$(OUTPUT)
 
 # Down here, custom configuration ends.
@@ -244,28 +243,17 @@ $(WORKSPACES):
 
 .PHONY: all $(WORKSPACES)
 
-repair: $(WORKSPACES:%=repair-%)
-
-$(WORKSPACES:%=repair-%):
-	$(MAKE) -R -C $(@:repair-%=%) -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) MAKEFLAGS=$(subst k,,$(MAKEFLAGS)) repair
-
-.PHONY: repair $(WORKSPACES:%=repair-%)
-
-view: $(WORKSPACES:%=view/%)
+ZIPS = $(patsubst %,%.zip,$(patsubst %/data,%,$(WORKSPACES)))
+zip: $(ZIPS)
 
 # prepare for export
-$(WORKSPACES:%=view/%): view/%: %
-	@mkdir -p view
-# delete local file IDs not existing in the filesystem:
-	ocrd workspace -d $< prune-files
-# bag, but do no zip yet (because we must still filter and path prefixing and filename suffixing):
-	ocrd -l WARN zip bag -d $< -i $(@:%/data=%) -Z $(@:%/data=%)
-	$(MAKE) -R -C $(@:%/data=%)/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) prune-view
-# bag again and zip:
-	ocrd -l WARN zip bag -d $(@:%/data=%)/data -i $(@:%/data=%) $(@:%/data=%).zip
-	@echo new workspace can be viewed under $(@:%/data=%)/data or $(@:%/data=%).zip
+$(ZIPS): %.zip: %/data
+	ocrd -l WARN zip bag -d $< -i $(<:%/data=%) $@
 
-.PHONY: view $(WORKSPACES:%=view/%)
+$(ZIPS): %.zip: %
+	ocrd -l WARN zip bag -d $< -i $< $@
+
+.PHONY: zip
 
 else
 ifneq ($(if $(filter info show,$(MAKECMDGOALS)),true,$(wildcard $(CURDIR)/mets.xml)),)
@@ -383,55 +371,6 @@ export OPENBLAS_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export VECLIB_MAXIMUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 export NUMEXPR_NUM_THREADS=$(if $(filter -j,$(MAKEFLAGS)),1,$(NTHREADS))
 # FIXME: how about multiprocessing/threading in Tensorflow?
-
-# define JPageViewer export target on top of workflow
-view:
-# clone into a new directory
-	@mkdir -p view
-# delete local file IDs not existing in the filesystem:
-	ocrd workspace prune-files
-# bag, but do no zip yet (because we must still filter and path prefixing and filename suffixing):
-	ocrd -l WARN zip bag -i $(notdir $(CURDIR:%/data=%)) -Z view
-	$(MAKE) -R -C view/data -I $(CONFIGDIR) -f $(CONFIGURATION) $(EXTRA_MAKEFLAGS) prune-view
-	@echo new workspace can be viewed under view/data
-
-prune-view:
-# filter out file groups we do not need for current configuration:
-	ocrd workspace remove-group -fr $$(ocrd workspace list-group | \
-		fgrep -xv -f <(LC_MESSAGES=C \
-			$(MAKE) -R -nd -I $(CONFIGDIR) -f $(CONFIGURATION) |& \
-			fgrep -e 'Considering target file' -e 'Trying rule prerequisite' | \
-			cut -d\' -f2 | { cat; echo OCR-D-IMG* | tr ' ' '\n'; }))
-# change imageFilename paths from METS-relative to PAGE-relative for JPageViewer:
-	ocrd workspace find -m application/vnd.prima.page+xml | \
-		while read name; do \
-		test -f $$name || continue; \
-		sed -i 's|imageFilename="\([^/]\)|imageFilename="../\1|' $$name; \
-		done
-	@find . -type d -empty -delete
-
-repair:
-# repair badly published workspaces:
-# fix MIME type of PAGE-XML files:
-	sed -i 's|MIMETYPE="image/jpeg" ID="OCR-D-GT|MIMETYPE="application/vnd.prima.page+xml" ID="OCR-D-GT|' mets.xml
-# fix imageFilename (relative to METS, not to PAGE)
-	for file in $$(ocrd workspace find -m application/vnd.prima.page+xml -k local_filename); do \
-		test -f $$file || continue; \
-		sed -i 's|imageFilename="../|imageFilename="|' $$file; \
-	done
-# fix imageFilename (find PAGE filename in METS, find image filename via same pageId in METS):
-	for page in $$(ocrd workspace find -k pageId | sort -u); do \
-		img=$$(ocrd workspace find -G OCR-D-IMG -g $$page -k local_filename); \
-		test -f $$img || continue; \
-		for file in $$(ocrd workspace find -m application/vnd.prima.page+xml -g $$page -k local_filename); do \
-			test -f $$file || continue; \
-			img0=$$(sed -n "s|^.*imageFilename=\"\([^\"]*\)\".*$$|\1|p" $$file); \
-			test -f $$img0 && continue; \
-			sed -i "s|imageFilename=\"$$img0\"|imageFilename=\"$$img\"|" $$file; \
-		done; \
-	done
-
-.PHONY: view prune-view repair info
 
 # prevent parallel execution of recipes within one workspace
 # (because that would require FS synchronization on the METS,
