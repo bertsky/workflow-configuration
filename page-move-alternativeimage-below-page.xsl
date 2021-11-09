@@ -3,6 +3,8 @@
   xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
   <xsl:output method="xml" version="1.0" omit-xml-declaration="no" encoding="UTF-8" indent="yes"/>
   <xsl:strip-space elements="*"/>
+  <!-- older LAREX versions moved AlternativeImages from all (sub)segments to the page level, which is incorrect
+       this tries to move them back by guessing the segment id from the image filename -->
 
 <!-- suppress AlternativeImage on page level for sub-segments
      TODO: needs more elaborate filter than just fixed region/line strings
