@@ -138,19 +138,19 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         esac
         if (($convert)) && \
                mkdir -p OCR-D-IMG && \
-               warning "converting '$file' to 'OCR-D-IMG/${base}.*.tif' prior to import" && \
-               convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}.%04d.tif"; then
+               warning "converting '$file' to 'OCR-D-IMG/${base}_*.tif' prior to import" && \
+               convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}_%04d.tif"; then
             mimetype=image/tiff
             IFS=$'\n'
-            files=($(find OCR-D-IMG -name "${base}.[0-9]*.tif" | sort))
+            files=($(find OCR-D-IMG -name "${base}_[0-9]*.tif" | sort))
             IFS=$' \t\n'
-            info "converted '$file' to 'OCR-D-IMG/${base}.*.tif' (${#files[*]} files)"
+            info "converted '$file' to 'OCR-D-IMG/${base}_*.tif' (${#files[*]} files)"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
                     file="${file#./}"
                     base="${file%.tif}"
                     base="${base#OCR-D-IMG/}"
-                    add_file $group $mimetype $page.${base:(-4)} "$base" "$file"
+                    add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
                 continue
