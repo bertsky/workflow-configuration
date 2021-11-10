@@ -120,14 +120,14 @@ To see the command sequence that would be executed for the chosen configuration 
     [ocrd-]make -f CONFIGURATION.mk show
 
 
+To run a workflow server for the command sequence that would be executed for the chosen configuration (to be controlled via `ocrd workflow client` or HTTP):
+
+    [ocrd-]make -f CONFIGURATION.mk server
+
+
 To remove the configuration makefiles in the current/target directory:
 
     [ocrd-]make clean
-
-
-To prepare workspaces for processing by fixing certain flaws that kept happening during publication:
-
-    [ocrd-]make repair
 
 
 To create workspaces from directories which contain image files:
@@ -140,14 +140,17 @@ To get help for the import tool:
     ocrd-import --help
 
 
-To derive flat directories from workspaces suitable for LAREX annotation:
+To perform various tasks via XSLT on PAGE-XML files (these all share the same options, including `--help`):
 
-    ocrd-export-larex -I FILEGRP -O DIR
-
-
-To get help for the LAREX export tool:
-
-    ocrd-export-larex --help
+    page-add-nsprefix-pc # adds namespace prefix 'pc:'
+    page-remove-metadataitem # remove all MetadataItem entries
+    page-remove-dead-regionrefs # remove non-existing regionRefs
+    page-remove-empty-readingorder # remove empty ReadingOrder or groups
+    page-fix-coords # replace negative values in coordinates by zero
+    page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
+    page-extract-lines # extract TextLine/TextEquiv/Unicode consequtively
+    page-extract-words # extract Word/TextEquiv/Unicode consequtively
+    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
 
 
 To spawn a new configuration file:
