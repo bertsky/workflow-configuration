@@ -148,6 +148,8 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
     page-fix-coords # replace negative values in coordinates by zero
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
+    page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
+    page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
     page-extract-lines # extract TextLine/TextEquiv/Unicode consequtively
     page-extract-words # extract Word/TextEquiv/Unicode consequtively
     page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
