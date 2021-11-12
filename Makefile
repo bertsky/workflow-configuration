@@ -317,7 +317,7 @@ space = $() $()
 comma = ,
 define toolrecipe =
 	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
-	-I $(subst $(space),$(comma),$^) -p $@.json \
+	-I $(subst $(space),$(comma),$+) -p $@.json \
 	-O $@ --overwrite $(OPTIONS) 2>&1 | tee $@.log && \
 	touch -c $(subst $(comma),$(space),$@) || { \
 	$(if $(wildcard $(firstword $(subst $(comma),$(space),$@))), \
@@ -352,7 +352,7 @@ ifeq ($(MAKECMDGOALS),show)
 # prevent any existing recipes to be executed
 override MAKEFLAGS = n
 %:
-	$(if $(and $(TOOL),$<),$(info '$(TOOL) -I $(subst $(space),$(comma),$^) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)'))
+	$(if $(and $(TOOL),$<),$(info '$(TOOL) -I $(subst $(space),$(comma),$+) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)'))
 else
 %:
 	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
