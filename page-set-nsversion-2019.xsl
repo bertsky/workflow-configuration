@@ -9,7 +9,13 @@ xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xsi="http://www.w3.org/20
   </xsl:copy>
 </xsl:template>
 
-<xsl:template match="*[namespace-uri()=/*/namespace::*[not(name())]]">
+<xsl:template match="*[namespace-uri()=/*/namespace::*]">
+  <xsl:if test="not(starts-with(namespace-uri(),'http://schema.primaresearch.org/PAGE/gts/pagecontent/'))">
+    <xsl:message terminate="yes">
+      <xsl:text>input document is not of type http://schema.primaresearch.org/PAGE/gts/pagecontent, but </xsl:text>
+      <xsl:value-of select="namespace-uri()"/>
+    </xsl:message>
+  </xsl:if>
   <xsl:element name="{local-name()}" namespace="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
     <xsl:apply-templates select="@*|node()"/>
   </xsl:element>
