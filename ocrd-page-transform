@@ -61,15 +61,16 @@ file="${1:--}"
 set -e
 
 test -e "$SHAREDIR"/$name.xsl
-if ((diff)); then
-    if test "x$file" = x-; then
-        file=$(mktemp)
-        cat > $file
-    fi
-    diff -u "$file" <(xmlstarlet tr "$SHAREDIR"/$name.xsl "$file")
+
+if test "x$file" = x-; then
+    file=$(mktemp)
+    cat > $file
 fi
-if ((inplace)); then
-    xmlstarlet tr "$SHAREDIR"/$name.xsl "$file" | sponge "$file"
+output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "$file")"
+if ((diff)); then
+    diff -u "$file" <(echo "$output")
+elif ((inplace)); then
+    echo "$output" | sponge "$file"
 else
-    xmlstarlet tr "$SHAREDIR"/$name.xsl "$file"
+    echo "$output"
 fi
