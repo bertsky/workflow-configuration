@@ -2,7 +2,7 @@
   xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
   xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
   <xsl:output method="xml" version="1.0" omit-xml-declaration="no" encoding="UTF-8" indent="yes"/>
-  <xsl:strip-space elements="*"/>
+  <xsl:preserve-space elements="*"/>
   <!-- older LAREX versions moved AlternativeImages from all (sub)segments to the page level, which is incorrect
        this tries to move them back by guessing the segment id from the image filename -->
 
