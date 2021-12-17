@@ -1,53 +1,245 @@
 #!/usr/bin/env bash
 
-# This script encapsulates calls to `make` in the CWD
-# after copying/symlinking the workflow-configuration
-# makefiles into it. It is meant to be used either:
+# This script encapsulates (parallel) calls to `make` in the
+# workspace directories with workflow-configuration makefiles.
+#
+# It is meant to be used either:
 # - by calling the script via its full path in the
 #   workflow-configuration installation directory, or
 # - by using PATH after running `make install` in the
 #   workflow-configuration installation directory
 #   (with a suitable choice of VIRTUAL_ENV as prefix).
-# The first will find the makefiles via its `dirname $0`,
-# while the second will find them from the fixed SHAREDIR
-# substituted during `make install`.
+#
+# The CLI in parts mimics that of `make` itself, esp.
+# the -j and -f options.
+# Concrete workflow files must be passed by file name
+# via the -f option. Relative paths are resolved by
+# either the CWD, or the script's location (`dirname $0`),
+# or the fixed $SHAREDIR substituted during `make install`.
 
-SHAREDIR=$(cd $(dirname "$0") && pwd)
+SCRIPTDIR="$(dirname "$0")"
+SHAREDIR="$(cd $(dirname "$0") && pwd)"
+WORKFLOW=
+PARALLEL=0
+JOBS=0
+LOAD=0
+ALL=0
 
-function process {
-    (
-        CURDIR="$PWD"
-        cd "$SHAREDIR"
-        # we want to have a fall-back for FS without symlink support
-        # or when some makefile already exists (perhaps with customization)
-        # but unfortunately, `cp -u` has strange semantics w.r.t. retvalue
-        for f in *.mk Makefile;do
-            local src="$SHAREDIR/$f"
-            local dst="$CURDIR/$f"
-            if [[ ! -e "$dst" || "$src" -nt "$dst" ]];then
-                # for broken symlinks cp -f is not enough:
-                ln -s "$src" "$dst" 2>/dev/null || cp --remove-destination -f "$src" "$dst"
-            fi
-        done
-        make -C "$CURDIR" "$@"
-    )
-}
+set -e
 
-case ${1:--h} in
-    -c|-[-]cleanup|cleanup)
-        process --no-print-directory cleanup
-        exit
-        ;;
-    -h|-[-]help|help)
-        cat <<EOF
-  (This will merely delegate to \`make\` on the current working directory "$PWD"
-  from the installation directory "$SHAREDIR":)
+makeopts=()
+targets=()
+# consume all arguments, sift our own vs. make's
+while (($#)); do
+    case "$1" in
+        -f)
+            shift
+            WORKFLOW="$1"
+            ;;
+        --file=*|--makefile=*)
+            WORKFLOW="$1"
+            WORKFLOW="${WORKFLOW#*=}"
+            ;;
+        -j|--jobs)
+            PARALLEL=1
+            case "$2" in
+                -*)
+                    :
+                    ;;
+                [0-9]*)
+                    JOBS=$2
+                    shift
+                    ;;
+            esac
+            ;;
+        -j*|--jobs*)
+            PARALLEL=1
+            JOBS=$1
+            JOBS=${JOBS#-j}
+            JOBS=${JOBS#--jobs=}
+            JOBS=${JOBS#--jobs}
+            ;;
+        -l)
+            LOAD=0
+            case "$2" in
+                -*)
+                    :
+                    ;;
+                [0-9]*)
+                    LOAD=$2
+                    shift
+                    ;;
+            esac
+            ;;
+        --load-average=*|--max-load=*)
+            LOAD=${1#*=}
+            ;;
+        --load-average*|--max-load*)
+            LOAD=0
+            ;;
+        -C)
+            cd "$2"
+            shift
+            ;;
+        --directory=*)
+            cd "${2#*=}"
+            ;;
+        -I|--include-dir=*)
+            echo >&2 "ERROR: explicit include-dir not allowed here"
+            exit 1
+            ;;
+        -o|-W)
+            makeopts+=( $1 "$2" )
+            shift
+            ;;
+        -h|-[-]help|help)
+            cat <<EOF
+Running OCR-D workflow configurations on multiple workspaces:
+
+  Usage:
+  ocrd-make [OPTIONS] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]
+
+  Targets (general):
+  * help (this message)
+  * info (short self-description of the selected configuration)
+  * show (print command sequence that would be executed for the selected configuration)
+  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')
+
+  Targets (data processing):
+  * all (recursively find all directories with a mets.xml, default goal)
+  * % (name of the workspace directory, overriding the default goal)
+
+  Variables:
+  * LOGLEVEL: override global loglevel for all OCR-D processors
+    (if unset, then default/configured logging levels apply)
+  * PAGES: override pageId selection (comma-separated list)
+    (if unset, then all pages will be processed)
+
+(This will merely delegate to \`make\` on the given working directories
+from the installation directory "$SHAREDIR". All options except -C and -I
+are allowed and passed through. Options -j and -l are intercepted.)
 
 EOF
-        process --no-print-directory help | sed "s/^  make /  $(basename $0) /"
-        exit
-        ;;
-esac
+            exit
+            ;;
+        -*|--*)
+            makeopts+=( "$1" )
+            ;;
+        *=*)
+            makeopts+=( "$1" )
+            ;;
+        all)
+            ALL=1
+            ;;
+        info|show|server)
+            make -I $SHAREDIR -f $WORKFLOW $1
+            exit
+            ;;
+        *)
+            if ! test -d "$1"; then
+                echo >&2 "ERROR: target '$1' is not a directory"
+                exit 1
+            fi
+            targets+=( "$1" )
+            ;;
+    esac
+    shift
+done
 
-#set -e
-process "$@"
+if test -z "$WORKFLOW"; then
+    echo >&2 "ERROR: must set concrete workflow file (-f option)"
+    exit 1
+fi
+
+if test "$WORKFLOW" = "${WORKFLOW#/}"; then
+    # relative path
+    if test -e "$WORKFLOW"; then
+        WORKFLOW="$PWD/$WORKFLOW"
+    elif test -e "$SCRIPTDIR/$WORKFLOW"; then
+        WORKFLOW="$SCRIPTDIR/$WORKFLOW"
+    elif test -e "$SHAREDIR/$WORKFLOW"; then
+        WORKFLOW="$SHAREDIR/$WORKFLOW"
+    fi
+fi
+if ! test -e "$WORKFLOW"; then
+    echo >&2 "ERROR: cannot resolve path name '$WORKFLOW'"
+    exit 1
+fi
+
+# include directory of workflow config itself,
+# in case it includes a local.mk or Makefile
+# and is not here
+CFGDIR="$(dirname "$WORKFLOW")"
+CFGNAME="$(basename "${WORKFLOW%.mk}")"
+#  -I "$CFGDIR
+makeopts+=( -R -I "$SHAREDIR" -f "$WORKFLOW" )
+
+((${#targets[*]})) || ALL=1
+if ((ALL)); then
+    # find all */mets.xml
+    # FIXME: find a way to shortcut directories we already found
+    targets=( $(find -L . -mindepth 2 -path "./*.backup" -prune -o -name mets.xml -printf "%h\n") )
+fi
+
+###
+# suppress other multiscalar mechanisms
+# (mostly related to Python numpy and Tesseract OpenMP:)
+NPROCS=$(nproc)
+NPROCS2=$(( $NPROCS/2 ))
+if ((NPROCS2==0)); then
+    NTHREADS=1
+else
+    NTHREADS=$NPROCS2
+fi
+if ((PARALLEL)); then
+    export OMP_THREAD_LIMIT=$NTHREADS
+    export OMP_NUM_THREADS=$NTHREADS
+    export OPENBLAS_NUM_THREADS=$NTHREADS
+    export VECLIB_MAXIMUM_THREADS=$NTHREADS
+    export NUMEXPR_NUM_THREADS=$NTHREADS
+else
+    export OMP_THREAD_LIMIT=1
+    export OMP_NUM_THREADS=1
+    export OPENBLAS_NUM_THREADS=1
+    export VECLIB_MAXIMUM_THREADS=1
+    export NUMEXPR_NUM_THREADS=1
+fi
+# FIXME: how about multiprocessing/threading in Tensorflow?
+
+set +e
+
+if ((PARALLEL)); then
+    echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} in parallel"
+    parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
+    # 
+    # --halt soon,fail=3    exit when 3 jobs fail, but wait for running jobs to complete.
+    # --halt soon,fail=3%   exit when 3% of the jobs have failed, but wait for running jobs to complete.
+    #  defaults to never, which runs all jobs no matter what.
+    ((LOAD)) && parallelopts+=(--load $LOAD)
+    ((JOBS)) && parallelopts+=(--jobs $JOBS)
+    parallel "${parallelopts[@]}" make "${makeopts[@]}" -C ::: "${targets[@]}" | {
+        while read dir log; do
+            echo $dir
+            cat $log >> $dir.$CFGNAME.log
+            rm $log
+        done
+    }
+    echo $CFGNAME.$$.log
+    exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
+else
+    echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} serially"
+    exitcodes=()
+    for target in "${targets[@]}"; do
+        make "${makeopts[@]}" -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+        exitcodes+=( $? )
+    done
+fi
+if ((ALL)); then
+    > _all.$CFGNAME.log
+    for target in "${targets[@]}"; do
+        cat "$target.$CFGNAME.log" >> _all.$CFGNAME.log
+    done
+    echo _all.$CFGNAME.log
+fi
+IFS=+
+exit $(("${exitcodes[*]}"))

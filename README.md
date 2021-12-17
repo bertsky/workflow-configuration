@@ -1,6 +1,8 @@
 ## OCR-D workflow configurations based on makefiles
 
-This provides a first attempt at running [OCR-D](https://ocr-d.github.io) workflows configured and controlled via GNU makefiles. Makefilization offers the following _advantages_:
+This provides an attempt at running [OCR-D](https://ocr-d.de) workflows configured and controlled via makefiles using [GNU bash](http://www.gnu.org/software/bash), [GNU make](http://www.gnu.org/software/make/) and [GNU parallel](http://www.gnu.org/software/parallel).
+
+Makefilization offers the following _advantages_:
 
 - incremental builds (steps already processed for another configuration or in a failed run need not be repeated) and automatic dependencies (new files will force all their dependents to update)
 - persistency of configuration and results
@@ -38,52 +40,50 @@ To install system dependencies for this package, run...
 
     make deps-ubuntu
 
-
 ...in a privileged context for Ubuntu (like a Docker container).
 
 Or equivalently, install the following packages:
-- `parallel` (GNU parallel)
+- `parallel` ([GNU parallel](http://www.gnu.org/software/parallel))
+- `make` ([GNU make](http://www.gnu.org/software/make))
 - `xmlstarlet`
 - `bc` and `sed`
 
-Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See [OCR-D setup guide](https://ocr-d.github.io/docs/setup) for instructions. (Yes, `workflow-configuration` is already part of [ocrd_all](https://github.com/OCR-D/ocrd_all).)
+Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See [OCR-D setup guide](https://ocr-d.de/en/setup) for instructions. 
+
+(Yes, `workflow-configuration` is already part of [ocrd_all](https://github.com/OCR-D/ocrd_all), which is also available on [Dockerhub](https://hub.docker.com/r/ocrd/all).)
 
 
 ### Installation
 
-You have 2 options, depending on your usage preferences:
-
-#### For direct invocation of make
-
-Simply copy or symlink all makefiles (i.e. both the specific workflow configurations `*.mk` and the general `Makefile`) to the __target directory__.
-
-(The target directory is the directory where your OCR workspace directories can be found. A workspace directory is one which contains a `data/mets.xml` or `mets.xml`.)
-
-You can then run workflows in the target directory by calling...
-
-    make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
-
-
-...where
-- _OPTIONS_ are the usual options controlling GNU make (e.g. `-j` for parallel processing).
-- _WORKFLOW_CONFIG.mk_ is one of the configuration makefiles you find here.
-- _WORKSPACES_ is a list of workspace directories, or `all` (the default) for all workspaces make can find.
-
-#### For invocation via shell script
-
-Run...
+Run:
 
     make install
 
-
 ... if you are in a (Python) virtual environment. Otherwise specify the installation prefix directory via environment variable `VIRTUAL_ENV`.
 
-Assuming `$VIRTUAL_ENV/bin` is in your `PATH`, you can now call...
+Assuming `$VIRTUAL_ENV/bin` is in your `PATH`, you can then call:
 
-    ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACES...
+    cd WORKSPACE && make [OPTIONS] -f WORKFLOW-CONFIG.mk
+    make -C WORKSPACE [OPTIONS] -f WORKFLOW-CONFIG.mk
 
+... for processing single workspace directory, or ...
 
-... in the target directory with the same interface as above (only without the need for copying makefiles).
+    ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACE...
+
+... for processing multiple workspaces at once (with the same interface as above).
+
+Where:
+
+- _`OPTIONS`_ are the usual options controlling GNU make (e.g. `-j` for parallel processing).
+- _`WORKFLOW_CONFIG.mk`_ is one of the configuration makefiles you find here or created yourself.
+- _`WORKSPACE`_ is a directory with a `mets.xml`, or `all` (the default) for all such directories that we can `find`.
+
+Calling workflows is possible from anywhere in your filesystem, but for the `WORKFLOW_CONFIG.mk` you may need to:
+
+- either provide the `*.mk` configurations in the source directory at installation time (to ensure they are installed under the installation prefix and can always be found by file name only)
+- or provide full paths at runtime (by absolute path name, or relative to the CWD).
+
+(The previous version of `ocrd-make` tried to copy or symlink all makefiles to the runtime directory. You can still use those, but should remove the old `Makefile`.)
 
 
 ### Usage
@@ -96,13 +96,16 @@ To run a configuration...
    (Yes, you can have to look inside and browse its rules!)
 3. Execute: 
 
-        [ocrd-]make -f CONFIGURATION.mk [all]
+        cd WORKSPACE && make [OPTIONS] -f WORKFLOW-CONFIG.mk # or
+        make -C WORKSPACE [OPTIONS] -f WORKFLOW-CONFIG.mk
 
-(The special target `all` (which is also the default goal) will look for all workspaces in the current directory.)
+    ... for processing single workspace directory, or ...
 
-You can also run on a subset of workspaces by passing these as goals on the command line...
+        ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk all
 
-    [ocrd-]make -f CONFIGURATION.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
+    (The special target `all` (which is also the default goal) will search for all workspaces in the current directory recursively.) You can also run on a subset of workspaces by passing these as goals on the command line...
+
+        ocrd-make -f WORKFLOW-CONFIG.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 
 
 To get help:
@@ -123,11 +126,6 @@ To see the command sequence that would be executed for the chosen configuration 
 To run a workflow server for the command sequence that would be executed for the chosen configuration (to be controlled via `ocrd workflow client` or HTTP):
 
     [ocrd-]make -f CONFIGURATION.mk server
-
-
-To remove the configuration makefiles in the current/target directory:
-
-    [ocrd-]make clean
 
 
 To create workspaces from directories which contain image files:
@@ -155,9 +153,9 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
 
 
-To spawn a new configuration file:
+To spawn a new configuration file, in the directory of the source repository, do:
 
-    [ocrd-]make NEW-CONFIGURATION.mk
+    make NEW-CONFIGURATION.mk
 
 
 Furthermore, you can add any options that `make` understands (see `make --help` or `info make 'Options Summary'`). For example,
@@ -165,34 +163,38 @@ Furthermore, you can add any options that `make` understands (see `make --help` 
 - `-q` or `--question` to just check whether anything needs to be built at all
 - `-s` or `--silent` to suppress echoing recipes
 - `-j` or `--jobs` to run on workspaces in parallel
+- `-l` or `--max-load` to set the maximum load level in parallel mode
 - `-B` or `--always-make` to consider all targets out-of-date (i.e. unconditionally rebuild)
-
-Note, that because workspaces are built by recursive invocation, and `make` does not pass on those `MAKEFLAGS` which can affect dependency calculation, you cannot _directly_ use the following options:
 - `-o` or `--old-file` to consider some target up-to-date w.r.t. its prerequisites (i.e. unconditionally keep) but older than its dependents (i.e. unconditionally ignore)
 - `-W` or `--new-file` to consider some target newer than its dependents (i.e. unconditionally update them)
 
-However, you can wrap them in a special variable __`EXTRA_MAKEFLAGS`__ which gets expanded at the workspace level. For example, to rebuild anything _after_ the fileGrp `OCR-D-BIN`, do:
+For example, to rebuild anything _after_ the fileGrp `OCR-D-BIN`, do:
 
-    [ocrd-]make -f CONFIGURATION.mk all EXTRA_MAKEFLAGS="-W OCR-D-BIN"
+    ocrd-make -f CONFIGURATION.mk -W OCR-D-BIN all
 
-You can also use that variable to specify any other than the `.DEFAULT_GOAL` of your configuration as the overall target. For example, to build anything _up to_ the fileGrp `OCR-D-SEG-LINE`, do:
+You can also use that pattern to specify any fileGrp other than the `.DEFAULT_GOAL` of your configuration as the overall target. For example, to build anything _up to_ the fileGrp `OCR-D-SEG-LINE`, do:
 
-    [ocrd-]make -f CONFIGURATION.mk all EXTRA_MAKEFLAGS="OCR-D-SEG-LINE"
+    ocrd-make -f CONFIGURATION.mk .DEFAULT_GOAL=OCR-D-SEG-LINE all
 
-(If you chdir into some workspace yourself, `make` won't run recursively, so no `all` target exists and no `EXTRA_MAKEFLAGS` is necessary.)
+If you run `make` in the workspace directly instead of having `ocrd-make` do it recursively, then no `all` target exists and you can directly set the target fileGrp to replace `.DEFAULT_GOAL`:
 
-There are 2 more special variables besides `EXTRA_MAKEFLAGS`. To process only a subset of pages in all fileGrps, use `PAGES`. For example, to only consider pages `PHYS_0005` and `PHYS_0007`, do:
+    make -C WORKSPACE -f CONFIGURATION.mk -W OCR-D-BIN
+    make -C WORKSPACE -f CONFIGURATION.mk OCR-D-SEG-LINE
 
-    [ocrd-]make -f CONFIGURATION.mk all PAGES=PHYS_0005,PHYS_0007
+There are 2 special variables. To process only a subset of pages in all fileGrps, use `PAGES`. For example, to only consider pages `PHYS_0005` through `PHYS_0007`, do:
+
+    ocrd-make -f CONFIGURATION.mk all PAGES=PHYS_0005..PHYS_0007
+    make -C WORKSPACE -f CONFIGURATION.mk PAGES=PHYS_0005..PHYS_0007
 
 And to override the default (or configured) log levels for all processors and libraries, use `LOGLEVEL`. For example, to get debugging everywhere, do:
 
-    [ocrd-]make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
+    ocrd-make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
+    make -C WORKSPACE -f CONFIGURATION.mk LOGLEVEL=DEBUG
 
 
 ### Customisation
 
-To write new configurations, first choose a (sufficiently descriptive) makefile name, and spawn a new file for that: `[ocrd-]make NEW-CONFIGURATION.mk` (or copy from an existing configuration).
+To write new configurations, first choose a (sufficiently descriptive) makefile name, and spawn a new file for that: `make -C workflow-configuration NEW-CONFIGURATION.mk` (or copy from an existing configuration).
 
 Next, edit the file to your needs: Write rules using file groups as prerequisites/targets in the normal GNU make syntax. The first target defined must be the default goal that builds the very last file group for that configuration, or else a variable `.DEFAULT_GOAL` pointing to that target must be set anywhere in the makefile.
 
@@ -255,6 +257,8 @@ include Makefile
 ### Results
 
 #### OCR-D ground truth
+
+:construction: these results are no longer meaningful and should be updated!
 
 For the `data_structure_text/dta` repository, which includes both layout and text annotation down to the textline level, but very coarse segmentation, the following _character error rate_ (CER) was measured:
 
@@ -352,13 +356,11 @@ However, this result is still _preliminary_. Both the processor implementations 
 
 To make writing (and reading) configurations as simple as possible, they are expressed as rules operating on METS file groups (i.e. workspace-local). For convenience, the most common recipe pattern involving only 1 input and 1 output file group via some OCR-D CLI is available via static pattern rule, which merely takes the target-specific variables `TOOL` (the CLI executable) and optionally `PARAMS` (a JSON-formatted list of parameter assignments) or `OPTIONS` (a white-space separated list of parameter assignments). Custom rules are possible as well. If the makefile does not start with the overall target, it must specify its `.DEFAULT_GOAL`, so callers can run without knowledge of the target names.
 
-Rules that are not configuration-specific (like the static pattern rule) are all shared by including a common `Makefile` at the end of configuration makefiles. That file has 2 sets of rules:
-- a top-level set operating in the target directory (possibly in parallel),
-  targets are the available workspaces, and the global default goal `all`,
-- a low-level set operating in the workspace directory (always sequentially),
-  targets are the configured file groups, including the local default goal.
+Rules that are not configuration-specific (like the static pattern rule) are all shared by including a common `Makefile` at the end of configuration makefiles (which gets copied from `workflow.mk` at install time).
 
-The former calls the latter recursively for each workspace.
+`make` always operates on the level of the workspace directory (i.e. only one at a time), where targets are fileGrps and the default goal is the maximum fileGrp.
+
+For running entire collections of workspaces (possibly in parallel), recursive `make` has been abandoned in favour of the `parallel`-based `bash` script `ocrd-make`. Its command-line interface _looks_ like `make`, but the targets are workspaces and the default goal is `all` (which recursively `find`s all workspaces).
 
 #### GPU vs CPU parallelism
 
@@ -376,4 +378,4 @@ When executing workflows in parallel across workspaces (with `--jobs`) on multip
 
 In the current state of affairs, OCR-D processors cannot be run in parallel across pages via multiprocessing. (At least, they are never implemented that way.) That may change in the future with a [new OCR-D API](https://github.com/OCR-D/core/issues/322). But still, many processors do already use libraries like OpenMP or OpenBLAS which use multiprocessing locally within pages. This can be controlled via _environment variables_ like `OMP_THREAD_LIMIT`.
 
-This is achieved by exporting these variables to all recipes with a value of `1` when `-j` is in `MAKEFLAGS` or half the number of physical CPUs (unless `NTHREADS` is explicitly given) otherwise.
+This is achieved by exporting these variables to all recipes with a value of `1` when `-j` is used, or half the number of physical CPUs (unless `NTHREADS` is explicitly given) otherwise.
