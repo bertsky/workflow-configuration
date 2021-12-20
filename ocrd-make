@@ -217,7 +217,7 @@ if ((PARALLEL)); then
     #  defaults to never, which runs all jobs no matter what.
     ((LOAD)) && parallelopts+=(--load $LOAD)
     ((JOBS)) && parallelopts+=(--jobs $JOBS)
-    parallel "${parallelopts[@]}" make "${makeopts[@]}" -C ::: "${targets[@]}" | {
+    parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}" | {
         while read dir log; do
             echo $dir
             cat $log >> ${dir%%/}.$CFGNAME.log
