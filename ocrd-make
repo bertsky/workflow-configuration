@@ -220,18 +220,24 @@ if ((PARALLEL)); then
     parallel "${parallelopts[@]}" make "${makeopts[@]}" -C ::: "${targets[@]}" | {
         while read dir log; do
             echo $dir
-            cat $log >> $dir.$CFGNAME.log
+            cat $log >> ${dir%%/}.$CFGNAME.log
             rm $log
         done
     }
-    echo $CFGNAME.$$.log
     exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
+    for ((i=0; i<${#targets[*]}; i++)); do
+        ((${exitcodes[$i]}==0)) && echo -n "success:" || echo -n "failure:"
+        echo " ${targets[$i]}"
+    done
+    echo $CFGNAME.$$.log
 else
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} serially"
     exitcodes=()
     for target in "${targets[@]}"; do
         make "${makeopts[@]}" -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
         exitcodes+=( $? )
+        ((${exitcodes[*]:(-1)}==0)) && echo -n "success:" || echo -n "failure:"
+        echo " $target"
     done
 fi
 if ((ALL)); then
