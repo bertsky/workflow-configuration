@@ -224,12 +224,12 @@ if ((PARALLEL)); then
             rm $log
         done
     }
+    echo $CFGNAME.$$.log
     exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
     for ((i=0; i<${#targets[*]}; i++)); do
         ((${exitcodes[$i]}==0)) && echo -n "success:" || echo -n "failure:"
         echo " ${targets[$i]}"
     done
-    echo $CFGNAME.$$.log
 else
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} serially"
     exitcodes=()
