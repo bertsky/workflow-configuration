@@ -12,6 +12,7 @@ function debug { LEVEL=DEBUG log "$1"; }
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 ignore=0
+skip=()
 convert=1
 dpi=300
 numpageid=1
@@ -23,6 +24,7 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 
 with options:
  -i|--ignore      keep going after unknown file types
+ -s|--skip SUFFIX ignore file names ending in given SUFFIX
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
  -P|--nonnum-ids  do not use numeric pageIds but basename patterns
@@ -36,6 +38,11 @@ EOF
             ;;
         -i|--ignore)
             ignore=1
+            shift
+            ;;
+        -s|--skip)
+            shift
+            skip+=("$1")
             shift
             ;;
         -C|--no-convert)
@@ -93,6 +100,14 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
+    for suffix in "${skip[@]}"; do
+        if test "$file" != "${file%$suffix}"; then
+            info "skipping file '$file'"
+            file=
+            break
+        fi
+    done
+    test -z "$file" && continue
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
