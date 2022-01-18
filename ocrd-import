@@ -136,6 +136,12 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             if !((numpageid)); then
                 base=${base/OCR-D-IMG/$group}
             fi
+        elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
+                && fgrep -qw alto "$file"; then
+            group=OCR-D-SEG-ALTO
+            if !((numpageid)); then
+                base=${base/OCR-D-IMG/$group}
+            fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
             continue
