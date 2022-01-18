@@ -93,9 +93,11 @@ set +e
 (
 set -e
 cd "$DIRECTORY"
-ocrd workspace init .
+ocrd workspace init
 num=0 zeros=0000
+IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
+    IFS=' \t\n'
     let num++
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -112,7 +114,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     name="$(basename "$file")"
     suffix=."${name##*.}"
     base="${name%$suffix}"
-    # XSD ID must start with letter and not contain colons
+    # XSD ID must start with letter and not contain colons or spaces
     base="${base//[ :]/_}"
     if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
         base=f${base}
@@ -124,6 +126,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         base=${group}_"$base"
     fi
     mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
+    #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
     case "$mimetype" in
         ${MIMETYPE_PAGE})
         # FIXME should really validate this is PAGE-XML (cf. core#353)
