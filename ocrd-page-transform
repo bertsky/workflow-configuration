@@ -1,76 +1,117 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2086
 
-SHAREDIR=$(cd $(dirname "$0") && pwd)
+set -eu
+set -o pipefail
+# set -x
 
-function log {
-    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
-}
-function critical { LEVEL=CRITICAL log "$1"; }
-function error { LEVEL=ERROR log "$1"; }
-function warning { LEVEL=WARNING log "$1"; }
-function info { LEVEL=INFO log "$1"; }
-function debug { LEVEL=DEBUG log "$1"; }
+### arbitrary XSL transformation for PAGE-XML in OCR-D
+# 
+# Finds and downloads all files in the input fileGrp
+# of the workspace. Then for each page, finds the
+# corresponding PAGE-XML file, and processes it with
+# the given XSLT. The result is added to the output
+# fileGrp.
 
-((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
+which ocrd >/dev/null 2>/dev/null || { echo >&2 "ocrd not in \$PATH. Panicking"; exit 1; }
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && echo >&2 "bash $BASH_VERSION is too old. Please install bash 4.4 or newer." && exit 1
 
-name=$(basename $0)
-inplace=0
-diff=0
-while (($#)); do
-    case "${1:--h}" in
-        -h|-[-]help)
-            cat <<EOF
-Usage: $name [OPTIONS] [FILE]
+SHAREDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
+PRESERVE_NAMESPACE=1 # 1 preserves the input file's PAGE namespace prefix and URL (version)
 
-with options:
- -i|--inplace     overwrite input file with result of transformation
- -d|--diff        show diff between input and output
- -D|--dump        just print the transformation stylesheet (XSL)
- -h|--help        just show this message
+MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
+declare -A NAMESPACES
+eval "NAMESPACES=( $(ocrd bashlib constants NAMESPACES) )"
 
-Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "$name.xsl"
-Write the result to stdout, unless...
- -i / --inplace is given - in which case the result is written back to the
-                           file silently, or 
- -d / --diff is given - in which case the result will be compared to the
-                        input and a patch shown on stdout.
+function process_file {
+    local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" out_fpath="$5" out_id="$6" out_file_grp="$7"
+    
+    if ((PRESERVE_NAMESPACE)); then
+        # preserve namespace and prefix
+        xmlstarlet tr "$xsl" "$in_fpath" >"$out_fpath"
+    else
+        # stylesheet transforms to standard namespace:
+        xmlstarlet tr <(cat <<EOF
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<xsl:stylesheet version="1.0"
+  xmlns:xsl="${NAMESPACES[xsl]}"
+  xmlns="${NAMESPACES[page]}">
+  <xsl:output method="xml" version="1.0" 
+    encoding="UTF-8" indent="yes"/>
+  <xsl:template match="@*|text()|comment()|processing-instruction()">
+    <xsl:copy/>
+  </xsl:template>
+  <xsl:template match="*">
+    <xsl:element name="{local-name()}">
+      <xsl:apply-templates select="@*|*"/>
+    </xsl:element>
+  </xsl:template>
+</xsl:stylesheet>
 EOF
-            exit
-            ;;
-        -D|--dump)
-            cat "$SHAREDIR"/$name.xsl
-            exit
-            ;;
-        -i|--inplace)
-            inplace=1
-            shift
-            ;;
-        -d|--diff)
-            diff=1
-            shift
-            ;;
-        *)
-            break
-            ;;
-    esac
-done
+) "$in_fpath" | xmlstarlet tr "$xsl" >"$out_fpath"
+    fi
 
-(($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
-file="${1:--}"
+}
+    
+function main {
+    # Load ocrd bashlib functions
+    # shellcheck source=../core/ocrd/bashlib/lib.bash
+    source $(ocrd bashlib filename)
+    # override/redefine to include SHAREDIR:
+    ocrd__list_resources () {
+        ocrd ocrd-tool "$OCRD_TOOL_JSON" tool "$OCRD_TOOL_NAME" list-resources
+        find "$SHAREDIR" -name "*.xsl"
+    }
+    ocrd__wrap "$SHAREDIR/ocrd-tool.json" "ocrd-page-transform" "$@"
+    ocrd__minversion 2.29.0
 
-set -e
+    xsl="${params[xsl]}"
+    if test -e "$xsl"; then
+        xsl="$(realpath "$xsl")"
+    # FIXME: core should provide a mechanism for install-time (pre-distributed) resources
+    elif test -e "$SHAREDIR/$xsl"; then
+        xsl="$SHAREDIR/$xsl"
+    elif ocrd__list_resources | fgrep -q "/$xsl"; then
+        xsl="$(ocrd__list_resources | fgrep -m1 "/$xsl")"
+    else
+        ocrd__raise "cannot find xsl resource '$xsl'"
+    fi
+    cd "${ocrd__argv[working_dir]}"
+    out_file_grp=${ocrd__argv[output_file_grp]}
 
-test -e "$SHAREDIR"/$name.xsl
+    for ((n=0; n<${#ocrd__files[*]}; n++)); do
+        local in_fpath="$(ocrd__input_file $n url)"
+        local in_id="$(ocrd__input_file $n ID)"
+        local in_pageId="$(ocrd__input_file $n pageId)"
+        local out_id="$(ocrd__input_file $n outputFileId)"
+        local out_fpath="$out_file_grp/${out_id}.xml"
 
-if test "x$file" = x-; then
-    file=$(mktemp)
-    cat > $file
-fi
-output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "$file")"
-if ((diff)); then
-    diff -u "$file" <(echo "$output")
-elif ((inplace)); then
-    echo "$output" | sponge "$file"
-else
-    echo "$output"
-fi
+        if ! test -f "${in_fpath#file://}"; then
+           ocrd log error "input file ID=${in_id} (pageId=${in_pageId} MIME=${in_mimetype}) is not on disk"
+           continue
+        fi
+        mkdir -p $out_file_grp
+
+        ocrd log info "processing PAGE-XML input file $in_id ($in_pageId)"
+        process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$out_fpath" "$out_id" "$out_file_grp"
+
+        # Add PAGE file to METS
+        declare -a options
+        if [ -n "$in_pageId" ]; then
+            options=( -g $in_pageId )
+        else
+            options=()
+        fi
+        if [[ "${ocrd__argv[overwrite]}" == true ]];then
+            options+=( --force )
+        fi
+        options+=( -G $out_file_grp
+                   -m $MIMETYPE_PAGE
+                   -i "$out_id"
+                   "$out_fpath" )
+        ocrd workspace add "${options[@]}"
+    done
+}
+
+
+main "$@"

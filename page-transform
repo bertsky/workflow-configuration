@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+
+SHAREDIR=$(cd $(dirname "$0") && pwd)
+
+function log {
+    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
+}
+function critical { LEVEL=CRITICAL log "$1"; }
+function error { LEVEL=ERROR log "$1"; }
+function warning { LEVEL=WARNING log "$1"; }
+function info { LEVEL=INFO log "$1"; }
+function debug { LEVEL=DEBUG log "$1"; }
+
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
+
+name=$(basename $0)
+inplace=0
+diff=0
+while (($#)); do
+    case "${1:--h}" in
+        -h|-[-]help)
+            cat <<EOF
+Usage: $name [OPTIONS] [FILE]
+
+with options:
+ -i|--inplace     overwrite input file with result of transformation
+ -d|--diff        show diff between input and output
+ -D|--dump        just print the transformation stylesheet (XSL)
+ -h|--help        just show this message
+
+Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "$name.xsl"
+Write the result to stdout, unless...
+ -i / --inplace is given - in which case the result is written back to the
+                           file silently, or 
+ -d / --diff is given - in which case the result will be compared to the
+                        input and a patch shown on stdout.
+EOF
+            exit
+            ;;
+        -D|--dump)
+            cat "$SHAREDIR"/$name.xsl
+            exit
+            ;;
+        -i|--inplace)
+            inplace=1
+            shift
+            ;;
+        -d|--diff)
+            diff=1
+            shift
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+(($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
+file="${1:--}"
+
+set -e
+
+test -e "$SHAREDIR"/$name.xsl
+
+if test "x$file" = x-; then
+    file=$(mktemp)
+    cat > $file
+fi
+output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "$file")"
+if ((diff)); then
+    diff -u "$file" <(echo "$output")
+elif ((inplace)); then
+    echo "$output" | sponge "$file"
+else
+    echo "$output"
+fi

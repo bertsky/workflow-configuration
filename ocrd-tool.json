@@ -1,0 +1,19 @@
+{
+  "version": "0.1.0",
+  "git_url": "https://github.com/bertsky/workflow-configuration",
+  "tools": {
+    "ocrd-page-transform": {
+      "executable": "ocrd-page-transform",
+      "description": "apply arbitrary XSL transformation file for PAGE-XML",
+      "parameters": {
+        "xsl": {
+          "description": "File path of the XSL transformation script",
+          "type": "string",
+          "format": "uri",
+          "content-type": "text/xsl",
+          "required": true
+        }
+      }
+    }
+  }
+}

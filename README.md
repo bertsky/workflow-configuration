@@ -144,6 +144,8 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-metadataitem # remove all MetadataItem entries
     page-remove-dead-regionrefs # remove non-existing regionRefs
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
+    page-remove-words # remove all Word (and Glyph) entries
+    page-remove-glyphs # remove all Glyph entries
     page-fix-coords # replace negative values in coordinates by zero
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
@@ -152,6 +154,22 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-extract-words # extract Word/TextEquiv/Unicode consequtively
     page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
 
+
+To perform the same transformations, but as a [workspace processor](https://ocr-d.de/en/spec/cli):
+
+    ocrd-page-transform -P xsl page-remove-words.xsl
+    cat <<'EOF' > my-transform.xsl
+    <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
+      <xsl:output method="xml" standalone="yes" encoding="UTF-8" omit-xml-declaration="no"/>
+      <xsl:template match="//pc:Word"/>
+      <xsl:template match="node()|text()|@*">
+        <xsl:copy>
+          <xsl:apply-templates select="node()|text()|@*"/>
+        </xsl:copy>
+      </xsl:template>
+    </xsl:stylesheet>
+    EOF
+    ocrd-page-transform -P xsl my-transform.xsl
 
 To spawn a new configuration file, in the directory of the source repository, do:
 

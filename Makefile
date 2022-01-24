@@ -57,7 +57,7 @@ deps-ubuntu:
 	apt-get -y install parallel xmlstarlet bc sed
 
 XSLPROGS =$(EXISTING_TRANSFORMS:%.xsl=%)
-SHPROGS = ocrd-make ocrd-import
+SHPROGS = ocrd-make ocrd-import ocrd-page-transform
 PROGS = $(SHPROGS) $(XSLPROGS)
 install-bin: $(PROGS:%=$(BINDIR)/%) | $(BINDIR)
 
@@ -65,7 +65,7 @@ $(SHPROGS:%=$(BINDIR)/%): $(BINDIR)/%: %
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
 	chmod +x $@
 
-$(XSLPROGS:%=$(BINDIR)/%): %: ocrd-page-transform
+$(XSLPROGS:%=$(BINDIR)/%): %: page-transform
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
 	chmod +x $@
 
@@ -73,7 +73,7 @@ $(BINDIR) $(SHAREDIR):
 	@mkdir $@
 
 install: install-bin | $(SHAREDIR)
-	cp -Lf -t $(SHAREDIR) $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS)
+	cp -Lf -t $(SHAREDIR) $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS) ocrd-tool.json
 	mv $(SHAREDIR)/workflow.mk  $(SHAREDIR)/Makefile
 
 uninstall:
@@ -141,6 +141,7 @@ export skeleton
 %/Makefile: ;
 Makefile: ;
 local.mk: ;
+ocrd-tool.json: ;
 $(CONFIGURATION): ;
 $(EXISTING_MAKEFILES): ;
 $(EXISTING_TRANSFORMS): ;
