@@ -14,6 +14,7 @@ function debug { LEVEL=DEBUG log "$1"; }
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 name=$(basename $0)
+parameters=()
 inplace=0
 diff=0
 while (($#)); do
@@ -23,6 +24,8 @@ while (($#)); do
 Usage: $name [OPTIONS] [FILE]
 
 with options:
+ -s name=value    set param NAME to string literal VALUE (repeatable)
+ -p name=value    set param NAME to XPath expression VALUE (repeatable)
  -i|--inplace     overwrite input file with result of transformation
  -d|--diff        show diff between input and output
  -D|--dump        just print the transformation stylesheet (XSL)
@@ -36,6 +39,12 @@ Write the result to stdout, unless...
                         input and a patch shown on stdout.
 EOF
             exit
+            ;;
+        -s|-p)
+            [[ "$2" =~ .*=.* ]] || critical "invalid parameter syntax '$2'"
+            parameters+=( "$1" "$2" )
+            shift
+            shift
             ;;
         -D|--dump)
             cat "$SHAREDIR"/$name.xsl
@@ -66,7 +75,7 @@ if test "x$file" = x-; then
     file=$(mktemp)
     cat > $file
 fi
-output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "$file")"
+output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "${parameters[@]}" "$file")"
 if ((diff)); then
     diff -u "$file" <(echo "$output")
 elif ((inplace)); then
