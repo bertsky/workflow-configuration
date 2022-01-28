@@ -24,11 +24,11 @@ declare -A NAMESPACES
 eval "NAMESPACES=( $(ocrd bashlib constants NAMESPACES) )"
 
 function process_file {
-    local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" out_fpath="$5" out_id="$6" out_file_grp="$7"
+    local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" param="$5" out_fpath="$6" out_id="$7" out_file_grp="$8"
     
     if ((PRESERVE_NAMESPACE)); then
         # preserve namespace and prefix
-        xmlstarlet tr "$xsl" "$in_fpath" >"$out_fpath"
+        xmlstarlet tr "$xsl" $param "$in_fpath" >"$out_fpath"
     else
         # stylesheet transforms to standard namespace:
         xmlstarlet tr <(cat <<EOF
@@ -48,7 +48,7 @@ function process_file {
   </xsl:template>
 </xsl:stylesheet>
 EOF
-) "$in_fpath" | xmlstarlet tr "$xsl" >"$out_fpath"
+) "$in_fpath" | xmlstarlet tr "$xsl" $param >"$out_fpath"
     fi
 
 }
@@ -66,6 +66,7 @@ function main {
     ocrd__minversion 2.29.0
 
     xsl="${params[xsl]}"
+    xsltparam="${params[xslt-params]}"
     if test -e "$xsl"; then
         xsl="$(realpath "$xsl")"
     # FIXME: core should provide a mechanism for install-time (pre-distributed) resources
@@ -93,7 +94,7 @@ function main {
         mkdir -p $out_file_grp
 
         ocrd log info "processing PAGE-XML input file $in_id ($in_pageId)"
-        process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$out_fpath" "$out_id" "$out_file_grp"
+        process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$xsltparam" "$out_fpath" "$out_id" "$out_file_grp"
 
         # Add PAGE file to METS
         declare -a options

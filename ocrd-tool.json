@@ -12,6 +12,11 @@
           "format": "uri",
           "content-type": "text/xsl",
           "required": true
+        },
+        "xslt-params": {
+          "description": "Assignment of XSL transformation parameter values, given as in `xmlstarlet` (which differentiates between `-s name=value` for literal `value` and `-p name=value` for XPath expression `value`), white-space separated.",
+          "type": "string",
+          "default": ""
         }
       }
     }
