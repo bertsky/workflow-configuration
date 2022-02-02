@@ -1,5 +1,5 @@
 {
-  "version": "0.1.0",
+  "version": "0.1.1",
   "git_url": "https://github.com/bertsky/workflow-configuration",
   "tools": {
     "ocrd-page-transform": {
@@ -17,6 +17,11 @@
           "description": "Assignment of XSL transformation parameter values, given as in `xmlstarlet` (which differentiates between `-s name=value` for literal `value` and `-p name=value` for XPath expression `value`), white-space separated.",
           "type": "string",
           "default": ""
+        },
+        "mimetype": {
+          "description": "MIME type to register the output files under (should correspond to `xsl` result)",
+          "type": "string",
+          "default": "application/vnd.prima.page+xml"
         }
       }
     }

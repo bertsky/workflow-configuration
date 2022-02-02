@@ -86,6 +86,7 @@ function main {
         local in_pageId="$(ocrd__input_file $n pageId)"
         local out_id="$(ocrd__input_file $n outputFileId)"
         local out_fpath="$out_file_grp/${out_id}.xml"
+        local out_mimetype="${params[mimetype]}"
 
         if ! test -f "${in_fpath#file://}"; then
            ocrd log error "input file ID=${in_id} (pageId=${in_pageId} MIME=${in_mimetype}) is not on disk"
@@ -107,7 +108,7 @@ function main {
             options+=( --force )
         fi
         options+=( -G $out_file_grp
-                   -m $MIMETYPE_PAGE
+                   -m $out_mimetype
                    -i "$out_id"
                    "$out_fpath" )
         ocrd workspace add "${options[@]}"
