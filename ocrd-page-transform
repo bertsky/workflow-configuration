@@ -57,21 +57,13 @@ function main {
     # Load ocrd bashlib functions
     # shellcheck source=../core/ocrd/bashlib/lib.bash
     source $(ocrd bashlib filename)
-    # override/redefine to include SHAREDIR:
-    ocrd__list_resources () {
-        ocrd ocrd-tool "$OCRD_TOOL_JSON" tool "$OCRD_TOOL_NAME" list-resources
-        find "$SHAREDIR" -name "*.xsl"
-    }
     ocrd__wrap "$SHAREDIR/ocrd-tool.json" "ocrd-page-transform" "$@"
-    ocrd__minversion 2.29.0
+    ocrd__minversion 2.30.0
 
     xsl="${params[xsl]}"
     xsltparam="${params[xslt-params]}"
     if test -e "$xsl"; then
         xsl="$(realpath "$xsl")"
-    # FIXME: core should provide a mechanism for install-time (pre-distributed) resources
-    elif test -e "$SHAREDIR/$xsl"; then
-        xsl="$SHAREDIR/$xsl"
     elif ocrd__list_resources | fgrep -q "/$xsl"; then
         xsl="$(ocrd__list_resources | fgrep -m1 "/$xsl")"
     else
