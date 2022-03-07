@@ -119,7 +119,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
         base=f${base}
     fi
-    if !((numpageid)); then
+    if ! ((numpageid)); then
         page=$base
         # file ID must contain group, or processors will have to
         # prevent ID clashes by using numeric IDs
@@ -133,13 +133,13 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
            && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
-            if !((numpageid)); then
+            if ! ((numpageid)); then
                 base=${base/OCR-D-IMG/$group}
             fi
         elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
                 && fgrep -qw alto "$file"; then
             group=OCR-D-SEG-ALTO
-            if !((numpageid)); then
+            if ! ((numpageid)); then
                 base=${base/OCR-D-IMG/$group}
             fi
         elif (($ignore)); then
