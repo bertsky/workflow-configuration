@@ -74,7 +74,7 @@ function add_file {
     ocrd workspace add -G $1 -m $2 -g $3 -i "$4" "$5"
 }
 
-set -e
+set -eE
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
@@ -86,11 +86,15 @@ if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"
     critical "Directory '$1' already is a workspace" 1
 fi
 
-# sub-shell to back-off from mets.xml and subdir in case of failure:
-set +e
-(
-set -e
-cd "$DIRECTORY"
+# trap to back-off from mets.xml and subdir in case of failure:
+function backout {
+    popd
+    rm -f "$DIRECTORY"/mets.xml
+    critical "Cancelled '$DIRECTORY'" 2
+}
+trap backout ERR
+
+pushd "$DIRECTORY"
 ocrd workspace init
 num=0 zeros=0000
 IFS=$'\n'
@@ -218,9 +222,5 @@ done
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
-) || {
-    rm -f "$DIRECTORY"/mets.xml
-    critical "Cancelled '$DIRECTORY'" 2
-}
 
 info "Success on '$DIRECTORY'"
