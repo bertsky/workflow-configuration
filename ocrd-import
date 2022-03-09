@@ -100,7 +100,7 @@ num=0 zeros=0000
 IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
     IFS=' \t\n'
-    let num++
+    let num++ || true
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
@@ -196,7 +196,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     IFS=$' \t\n'
     n=0
     for clash in "${clashes[@]}"; do
-        let n++
+        let n++ || true
         IFS=$'\t'
         fields=($clash)
         IFS=$' \t\n'
