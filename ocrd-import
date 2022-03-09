@@ -3,13 +3,13 @@
 function log {
     echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
 }
-function critical { LEVEL=CRITICAL log "$1"; }
+function critical { LEVEL=CRITICAL log "$1"; exit "${2:-1}"; }
 function error { LEVEL=ERROR log "$1"; }
 function warning { LEVEL=WARNING log "$1"; }
 function info { LEVEL=INFO log "$1"; }
 function debug { LEVEL=DEBUG log "$1"; }
 
-((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" 2
 
 ignore=0
 skip=()
@@ -53,8 +53,7 @@ EOF
             shift
             dpi="$1"
             [[ "$dpi" =~ [0-9]+ ]] || {
-                critical "--render needs a numeric value"
-                exit 2
+                critical "--render needs a numeric value" 2
             }
             shift
             ;;
@@ -80,12 +79,11 @@ declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
 DIRECTORY="${1:-.}"
-test -d "$DIRECTORY"
+test -d "$DIRECTORY" || critical "not a directory: '$DIRECTORY'" 3
 
 # avoid damaging/replacing existing workspaces:
 if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"/data/mets.xml; then
-    error "Directory '$1' already is a workspace"
-    exit 1
+    critical "Directory '$1' already is a workspace" 1
 fi
 
 # sub-shell to back-off from mets.xml and subdir in case of failure:
@@ -146,8 +144,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             warning "unknown type of file '$file'"
             continue
         else
-            error "unknown type of file '$file'"
-            exit 1
+            critical "unknown type of file '$file'" 1
         fi
         ;;
         application/pdf|application/postscript|application/oxps|image/x-*|"")
@@ -186,8 +183,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             warning "unknown type of file '$file'"
             continue
         else
-            error "unknown type of file '$file'"
-            exit 1
+            critical "unknown type of file '$file'" 1
         fi
         ;;
     esac
@@ -224,8 +220,7 @@ done
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
 ) || {
     rm -f "$DIRECTORY"/mets.xml
-    critical "Cancelled '$DIRECTORY'"
-    exit 2
+    critical "Cancelled '$DIRECTORY'" 2
 }
 
 info "Success on '$DIRECTORY'"
