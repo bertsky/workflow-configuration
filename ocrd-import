@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
 
-function log {
-    echo >&2 "$(date +%T.%3N) $LEVEL ocrd-import - $1"
-}
-function critical { LEVEL=CRITICAL log "$1"; exit "${2:-1}"; }
-function error { LEVEL=ERROR log "$1"; }
-function warning { LEVEL=WARNING log "$1"; }
-function info { LEVEL=INFO log "$1"; }
-function debug { LEVEL=DEBUG log "$1"; }
+function critical { ocrd log -n ocrd-import critical "$1"; exit "${2:-1}"; }
+function error { ocrd log -n ocrd-import error "$1"; }
+function warning { ocrd log -n ocrd-import warning "$1"; }
+function info { ocrd log -n ocrd-import info "$1"; }
+function debug { ocrd log -n ocrd-import debug "$1"; }
 
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" 2
 
