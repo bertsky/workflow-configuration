@@ -67,8 +67,9 @@ done
 (($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
 
 function add_file {
-    info "adding -G $1 -m $2 -g $3 -i $4 '$5'"
-    ocrd workspace add -G $1 -m $2 -g $3 -i "$4" "$5"
+    info "adding -g $3 -G $1 -m $2 -i $4 '$5'"
+    # will be picked up by bulk-add below
+    echo $1 $2 $3 $4 $5 >&3
 }
 
 set -eE
@@ -83,20 +84,33 @@ if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"
     critical "Directory '$1' already is a workspace" 1
 fi
 
+FIFO=$(mktemp -u)
+mkfifo $FIFO
+
 # trap to back-off from mets.xml and subdir in case of failure:
 function backout {
+    kill $(jobs -p)
+    wait &>/dev/null
+    exec 3>&-
+    rm -f $FIFO
+    rm -f mets.xml
+    rm -fr OCR-D-IMG
     popd
-    rm -f "$DIRECTORY"/mets.xml
-    critical "Cancelled '$DIRECTORY'" 2
+    info "Cancelled '$DIRECTORY'"
 }
-trap backout ERR
+trap backout ERR EXIT
 
 pushd "$DIRECTORY"
 ocrd workspace init
+ocrd workspace bulk-add -r '(?P<grp>[^ ]+) (?P<mime>[^ ]+) (?P<page>[^ ]+) (?P<file>[^ ]+) (?P<src>.*)' \
+     -G '{{ grp }}' -m '{{ mime }}' -g '{{ page }}' -i '{{ file }}' -S '{{ src }}' - <$FIFO &
+
+exec 3>$FIFO
+
 num=0 zeros=0000
 IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
-    IFS=' \t\n'
+    IFS=$' \t\n'
     let num++ || true
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
@@ -120,7 +134,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     fi
     if ! ((numpageid)); then
         page=$base
-        # file ID must contain group, or processors will have to
+        # file IDs must contain group and page ID, or processors will have to
         # prevent ID clashes by using numeric IDs
         base=${group}_"$base"
     fi
@@ -215,6 +229,9 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
 done
+exec 3>&-
+rm -f $FIFO
+wait
 
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
