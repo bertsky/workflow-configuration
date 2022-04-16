@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 
-function critical { ocrd log -n ocrd-import critical "$1"; exit "${2:-1}"; }
+function critical { ocrd log -n ocrd-import critical "$1"; }
 function error { ocrd log -n ocrd-import error "$1"; }
 function warning { ocrd log -n ocrd-import warning "$1"; }
 function info { ocrd log -n ocrd-import info "$1"; }
 function debug { ocrd log -n ocrd-import debug "$1"; }
 
-((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" 2
+((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 ignore=0
+njobs=1
 skip=()
 convert=1
 dpi=300
@@ -21,6 +22,7 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 
 with options:
  -i|--ignore      keep going after unknown file types
+ -j|--jobs NJOBS  run pages by NJOBS jobs in parallel
  -s|--skip SUFFIX ignore file names ending in given SUFFIX
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
@@ -37,6 +39,11 @@ EOF
             ignore=1
             shift
             ;;
+        -j|--jobs)
+            shift
+            njobs=$1
+            shift
+            ;;
         -s|--skip)
             shift
             skip+=("$1")
@@ -50,7 +57,8 @@ EOF
             shift
             dpi="$1"
             [[ "$dpi" =~ [0-9]+ ]] || {
-                critical "--render needs a numeric value" 2
+                critical "--render needs a numeric value"
+                exit 2
             }
             shift
             ;;
@@ -72,16 +80,20 @@ function add_file {
     echo $1 $2 $3 $4 $5 >&3
 }
 
-set -eE
+set -e
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
 DIRECTORY="${1:-.}"
-test -d "$DIRECTORY" || critical "not a directory: '$DIRECTORY'" 3
+if ! test -d "$DIRECTORY"; then
+    critical "not a directory: '$DIRECTORY'"
+    false
+fi
 
 # avoid damaging/replacing existing workspaces:
 if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"/data/mets.xml; then
-    critical "Directory '$1' already is a workspace" 1
+    critical "Directory '$1' already is a workspace"
+    false
 fi
 
 FIFO=$(mktemp -u)
@@ -89,22 +101,34 @@ mkfifo $FIFO
 
 # trap to back-off from mets.xml and subdir in case of failure:
 function backout {
-    kill $(jobs -p)
+    kill $PID_BULKADD
     wait &>/dev/null
     exec 3>&-
     rm -f $FIFO
     rm -f mets.xml
     rm -fr OCR-D-IMG
-    popd
-    info "Cancelled '$DIRECTORY'"
+    popd > /dev/null
+    critical "Cancelled '$DIRECTORY'"
+    exit 1
 }
-trap backout ERR EXIT
+trap backout ERR
+# trap to receive cancel signal from subshell:
+function cancel {
+    njobs=0
+}
+trap cancel HUP
+# trap to signal failure to parent from subshell:
+function rollback {
+    kill -HUP $PID_TOP
+}
 
-pushd "$DIRECTORY"
+pushd "$DIRECTORY" > /dev/null
 ocrd workspace init
 ocrd workspace bulk-add -r '(?P<grp>[^ ]+) (?P<mime>[^ ]+) (?P<page>[^ ]+) (?P<file>[^ ]+) (?P<src>.*)' \
      -G '{{ grp }}' -m '{{ mime }}' -g '{{ page }}' -i '{{ file }}' -S '{{ src }}' - <$FIFO &
 
+PID_BULKADD=$!
+PID_TOP=$$
 exec 3>$FIFO
 
 num=0 zeros=0000
@@ -112,6 +136,12 @@ IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
     IFS=$' \t\n'
     let num++ || true
+    ((njobs))
+    if (($(jobs -p | wc -l) > $njobs)); then
+        wait -n # first wait for next subshell (from other iteration) to finish
+    fi
+    (
+    trap rollback ERR
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
@@ -122,7 +152,10 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             break
         fi
     done
-    test -z "$file" && continue
+    if test -z "$file"; then
+        warning "ignoring empty file $file"
+        exit # continue
+    fi
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
@@ -157,9 +190,10 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            continue
+            exit #continue
         else
-            critical "unknown type of file '$file'" 1
+            critical "unknown type of file '$file'"
+            false
         fi
         ;;
         application/pdf|application/postscript|application/oxps|image/x-*|"")
@@ -189,16 +223,17 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
                     add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
-                continue
+                exit # continue
             else
                 file="${files[0]}"
                 file="${file#./}"
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            continue
+            exit # continue
         else
-            critical "unknown type of file '$file'" 1
+            critical "unknown type of file '$file'"
+            false
         fi
         ;;
     esac
@@ -228,10 +263,12 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     done
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
+    )&
 done
 exec 3>&-
 rm -f $FIFO
 wait
+popd > /dev/null
 
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
