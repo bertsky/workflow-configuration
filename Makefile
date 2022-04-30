@@ -73,7 +73,7 @@ $(BINDIR) $(SHAREDIR):
 	@mkdir $@
 
 install: install-bin | $(SHAREDIR)
-	cp -Lf -t $(SHAREDIR) $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS) ocrd-tool.json
+	cp -Lf $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS) ocrd-tool.json $(SHAREDIR)
 	mv $(SHAREDIR)/workflow.mk  $(SHAREDIR)/Makefile
 
 uninstall:
