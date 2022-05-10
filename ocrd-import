@@ -200,8 +200,8 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         application/pdf|application/postscript|application/oxps|image/x-*|"")
         case "$suffix" in
             .pdf|.PDF)
-                inopts=(-density $((2*$dpi)) -units PixelsPerInch)
-                outopts=(-background white -alpha remove -alpha off -resample $dpi -density $dpi -units PixelsPerInch)
+                inopts=(-units PixelsPerInch -density $((2*$dpi)))
+                outopts=(-background white -alpha remove -alpha off -colorspace Gray -units PixelsPerInch -resample $dpi -density $dpi)
                 ;;
             *)
                 inopts=()
