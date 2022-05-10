@@ -141,6 +141,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         wait -n # first wait for next subshell (from other iteration) to finish
     fi
     (
+    set -e
     trap rollback ERR
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
