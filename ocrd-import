@@ -269,11 +269,10 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
 done
 exec 3>&-
 rm -f $FIFO
-wait
-popd > /dev/null
-
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
+wait
+popd > /dev/null
 
 info "Success on '$DIRECTORY'"
