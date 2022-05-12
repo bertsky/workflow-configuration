@@ -162,7 +162,8 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     suffix=."${name##*.}"
     base="${name%$suffix}"
     # XSD ID must start with letter and not contain colons or spaces
-    base="${base//[ :]/_}"
+    # also, avoid . in IDs, because downstream it will confuse filename suffix detection
+    base="${base//[ :.]/_}"
     if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
         base=f${base}
     fi
