@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
-function critical { ocrd log -n ocrd-import critical "$1"; }
-function error { ocrd log -n ocrd-import error "$1"; }
-function warning { ocrd log -n ocrd-import warning "$1"; }
-function info { ocrd log -n ocrd-import info "$1"; }
-function debug { ocrd log -n ocrd-import debug "$1"; }
+function critical { echo critical "$1"; }
+function error    { echo error "$1"; }
+function warning  { echo warning "$1"; }
+function info     { echo info "$1"; }
+function debug    { echo debug "$1"; }
 
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
@@ -175,94 +175,94 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     fi
     mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
     #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
-    case "$mimetype" in
-        ${MIMETYPE_PAGE})
-        # FIXME should really validate this is PAGE-XML (cf. core#353)
-        if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
-           && fgrep -qw 'PcGts' "$file"; then
-            group=OCR-D-SEG-PAGE
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
-        elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
-                && fgrep -qw alto "$file"; then
-            group=OCR-D-SEG-ALTO
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
-        elif (($ignore)); then
-            warning "unknown type of file '$file'"
-            exit #continue
-        else
-            critical "unknown type of file '$file'"
-            false
-        fi
-        ;;
-        application/pdf|application/postscript|application/oxps|image/x-*|"")
-        case "$suffix" in
-            .pdf|.PDF)
-                inopts=(-units PixelsPerInch -density $((2*$dpi)))
-                outopts=(-background white -alpha remove -alpha off -colorspace Gray -units PixelsPerInch -resample $dpi -density $dpi)
-                ;;
-            *)
-                inopts=()
-                outopts=()
-        esac
-        if (($convert)) && \
-               mkdir -p OCR-D-IMG && \
-               warning "converting '$file' to 'OCR-D-IMG/${base}_*.tif' prior to import" && \
-               convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}_%04d.tif"; then
-            mimetype=image/tiff
-            IFS=$'\n'
-            files=($(find OCR-D-IMG -name "${base}_[0-9]*.tif" | sort))
-            IFS=$' \t\n'
-            info "converted '$file' to 'OCR-D-IMG/${base}_*.tif' (${#files[*]} files)"
-            if ((${#files[*]}>1)); then
-                for file in "${files[@]}"; do
-                    file="${file#./}"
-                    base="${file%.tif}"
-                    base="${base#OCR-D-IMG/}"
-                    add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
-                done
-                # there's no danger of clashes with other files here
-                exit # continue
-            else
-                file="${files[0]}"
-                file="${file#./}"
-            fi
-        elif (($ignore)); then
-            warning "unknown type of file '$file'"
-            exit # continue
-        else
-            critical "unknown type of file '$file'"
-            false
-        fi
-        ;;
-    esac
-    IFS=$'\n'
-    clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
-    IFS=$' \t\n'
-    n=0
-    for clash in "${clashes[@]}"; do
-        let n++ || true
-        IFS=$'\t'
-        fields=($clash)
-        IFS=$' \t\n'
-        # if image, allow PAGE with matching basename
-        # if PAGE, allow image with matching basename
-        if if test $group = OCR-D-IMG; then
-               test "x${fields[1]}" = x${MIMETYPE_PAGE}
-           else [[ "${fields[1]}" =~ image/ ]]
-           fi; then
-            # use existing pageId
-            page=${fields[2]}
-            # use new file ID
-            base="$(basename "$file")" # (including suffix)
-            base="${base// /_}"
-        else
-            warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
-        fi
-    done
+    #case "$mimetype" in
+    #    ${MIMETYPE_PAGE})
+    #    # FIXME should really validate this is PAGE-XML (cf. core#353)
+    #    if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
+    #       && fgrep -qw 'PcGts' "$file"; then
+    #        group=OCR-D-SEG-PAGE
+    #        if ! ((numpageid)); then
+    #            base=${base/OCR-D-IMG/$group}
+    #        fi
+    #    elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
+    #            && fgrep -qw alto "$file"; then
+    #        group=OCR-D-SEG-ALTO
+    #        if ! ((numpageid)); then
+    #            base=${base/OCR-D-IMG/$group}
+    #        fi
+    #    elif (($ignore)); then
+    #        warning "unknown type of file '$file'"
+    #        exit #continue
+    #    else
+    #        critical "unknown type of file '$file'"
+    #        false
+    #    fi
+    #    ;;
+    #    application/pdf|application/postscript|application/oxps|image/x-*|"")
+    #    case "$suffix" in
+    #        .pdf|.PDF)
+    #            inopts=(-units PixelsPerInch -density $((2*$dpi)))
+    #            outopts=(-background white -alpha remove -alpha off -colorspace Gray -units PixelsPerInch -resample $dpi -density $dpi)
+    #            ;;
+    #        *)
+    #            inopts=()
+    #            outopts=()
+    #    esac
+    #    if (($convert)) && \
+    #           mkdir -p OCR-D-IMG && \
+    #           warning "converting '$file' to 'OCR-D-IMG/${base}_*.tif' prior to import" && \
+    #           convert "${inopts[@]}" "$file" "${outopts[@]}" OCR-D-IMG/"${base}_%04d.tif"; then
+    #        mimetype=image/tiff
+    #        IFS=$'\n'
+    #        files=($(find OCR-D-IMG -name "${base}_[0-9]*.tif" | sort))
+    #        IFS=$' \t\n'
+    #        info "converted '$file' to 'OCR-D-IMG/${base}_*.tif' (${#files[*]} files)"
+    #        if ((${#files[*]}>1)); then
+    #            for file in "${files[@]}"; do
+    #                file="${file#./}"
+    #                base="${file%.tif}"
+    #                base="${base#OCR-D-IMG/}"
+    #                add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
+    #            done
+    #            # there's no danger of clashes with other files here
+    #            exit # continue
+    #        else
+    #            file="${files[0]}"
+    #            file="${file#./}"
+    #        fi
+    #    elif (($ignore)); then
+    #        warning "unknown type of file '$file'"
+    #        exit # continue
+    #    else
+    #        critical "unknown type of file '$file'"
+    #        false
+    #    fi
+    #    ;;
+    #esac
+    #IFS=$'\n'
+    #clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
+    #IFS=$' \t\n'
+    #n=0
+    #for clash in "${clashes[@]}"; do
+    #    let n++ || true
+    #    IFS=$'\t'
+    #    fields=($clash)
+    #    IFS=$' \t\n'
+    #    # if image, allow PAGE with matching basename
+    #    # if PAGE, allow image with matching basename
+    #    if if test $group = OCR-D-IMG; then
+    #           test "x${fields[1]}" = x${MIMETYPE_PAGE}
+    #       else [[ "${fields[1]}" =~ image/ ]]
+    #       fi; then
+    #        # use existing pageId
+    #        page=${fields[2]}
+    #        # use new file ID
+    #        base="$(basename "$file")" # (including suffix)
+    #        base="${base// /_}"
+    #    else
+    #        warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
+    #    fi
+    #done
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
     )&
