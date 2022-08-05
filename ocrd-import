@@ -144,6 +144,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     set -e
     trap rollback ERR
     page=p${zeros:0:$((4-${#num}))}$num
+	echo "PAGE=$page"
     group=OCR-D-IMG
     file="${file#./}"
     for suffix in "${skip[@]}"; do
@@ -165,15 +166,18 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     # also, avoid . in IDs, because downstream it will confuse filename suffix detection
     base="${base//[ :.]/_}"
     if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
-        base=f${base}
+        #base=P_${base}
+		a=0 # just do something to have a correct syntax for this 'if'
     fi
     if ! ((numpageid)); then
-        page=$base
+        page=P_$base
+		#echo "PAGE=$page"
         # file IDs must contain group and page ID, or processors will have to
         # prevent ID clashes by using numeric IDs
         base=${group}_"$base"
     fi
     mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
+	#echo "BASE=$base"
     #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
     #case "$mimetype" in
     #    ${MIMETYPE_PAGE})
