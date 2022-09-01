@@ -25,6 +25,9 @@ Contents:
     * [For direct invocation of make](#for-direct-invocation-of-make)
     * [For invocation via shell script](#for-invocation-via-shell-script)
  * [Usage](#usage)
+    * [ocrd-import](#ocrd-import)
+    * [ocrd-page-transform](#ocrd-page-transform)
+    * [ocrd-make](#ocrd-make)
  * [Customisation](#customisation)
     * [Recommendations](#recommendations)
     * [Example](#example)
@@ -88,13 +91,146 @@ Calling workflows is possible from anywhere in your filesystem, but for the `WOR
 
 ### Usage
 
+#### ocrd-import
+
+To create workspaces from directories which contain image files:
+
+    ocrd-import DIRECTORY
+
+
+To get help for the import tool:
+
+    ocrd-import --help
+
+#### ocrd-page-transform
+
+To perform various tasks via XSLT on PAGE-XML files (these all share the same options, including `--help`):
+
+    page-add-nsprefix-pc # adds namespace prefix 'pc:'
+    page-remove-alternativeimages # remove selected AlternativeImage entries
+    page-remove-metadataitem # remove all MetadataItem entries
+    page-remove-dead-regionrefs # remove non-existing regionRefs
+    page-remove-empty-readingorder # remove empty ReadingOrder or groups
+    page-remove-words # remove all Word (and Glyph) entries
+    page-remove-glyphs # remove all Glyph entries
+    page-fix-coords # replace negative values in coordinates by zero
+    page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
+    page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
+    page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
+    page-extract-lines # extract TextLine/TextEquiv/Unicode consequtively
+    page-extract-words # extract Word/TextEquiv/Unicode consequtively
+    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
+
+<details><summary>standalone CLI</summary><p>
+
+```
+Usage: NAME [OPTIONS] [FILE]
+
+with options:
+ -s name=value    set param NAME to string literal VALUE (repeatable)
+ -p name=value    set param NAME to XPath expression VALUE (repeatable)
+ -i|--inplace     overwrite input file with result of transformation
+ -d|--diff        show diff between input and output
+ -D|--dump        just print the transformation stylesheet (XSL)
+ -h|--help        just show this message
+
+Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "<NAME>.xsl"
+Write the result to stdout, unless...
+ -i / --inplace is given - in which case the result is written back to the
+                           file silently, or
+ -d / --diff is given - in which case the result will be compared to the
+                        input and a patch shown on stdout.
+```
+
+</p></details>
+
+To perform the same transformations, but as a [workspace processor](https://ocr-d.de/en/spec/cli),
+use `ocrd-page-transform` and pass the filename of the transformation as parameter, e.g.:
+
+    ocrd-page-transform -P xsl page-extract-lines.xsl -P xslt-params "-s order=reading-order"
+    ocrd-page-transform -P xsl page-remove-alternativeimages.xsl -P xslt-params "-s level=line -s which=dewarped"
+    cat <<'EOF' > my-transform.xsl
+    <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
+      <xsl:output method="xml" standalone="yes" encoding="UTF-8" omit-xml-declaration="no"/>
+      <xsl:template match="//pc:Word"/>
+      <xsl:template match="node()|text()|@*">
+        <xsl:copy>
+          <xsl:apply-templates select="node()|text()|@*"/>
+        </xsl:copy>
+      </xsl:template>
+    </xsl:stylesheet>
+    EOF
+    ocrd-page-transform -P xsl my-transform.xsl
+
+<details><summary>OCR-D CLI</summary><p>
+
+```
+Usage: ocrd-page-transform [OPTIONS]
+
+  apply arbitrary XSL transformation file for PAGE-XML
+
+  > Processor base class and helper functions. A processor is a tool
+  > that implements the uniform OCR-D command-line interface for run-
+  > time data processing. That is, it executes a single workflow step,
+  > or a combination of workflow steps, on the workspace (represented by
+  > local METS). It reads input files for all or requested physical
+  > pages of the input fileGrp(s), and writes output files for them into
+  > the output fileGrp(s). It may take  a number of optional or
+  > mandatory parameters. Process the :py:attr:`workspace`  from the
+  > given :py:attr:`input_file_grp` to the given
+  > :py:attr:`output_file_grp` for the given :py:attr:`page_id` under
+  > the given :py:attr:`parameter`.
+
+  > (This contains the main functionality and needs to be overridden by
+  > subclasses.)
+
+Options:
+  -I, --input-file-grp USE        File group(s) used as input
+  -O, --output-file-grp USE       File group(s) used as output
+  -g, --page-id ID                Physical page ID(s) to process
+  --overwrite                     Remove existing output pages/images
+                                  (with --page-id, remove only those)
+  --profile                       Enable profiling
+  --profile-file                  Write cProfile stats to this file. Implies --profile
+  -p, --parameter JSON-PATH       Parameters, either verbatim JSON string
+                                  or JSON file path
+  -P, --param-override KEY VAL    Override a single JSON object key-value pair,
+                                  taking precedence over --parameter
+  -m, --mets URL-PATH             URL or file path of METS to process
+  -w, --working-dir PATH          Working directory of local workspace
+  -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
+                                  Log level
+  -C, --show-resource RESNAME     Dump the content of processor resource RESNAME
+  -L, --list-resources            List names of processor resources
+  -J, --dump-json                 Dump tool description as JSON and exit
+  -h, --help                      This help message
+  -V, --version                   Show version
+
+Parameters:
+   "xsl" [string - REQUIRED]
+    File path of the XSL transformation script
+   "xslt-params" [string - ""]
+    Assignment of XSL transformation parameter values, given as in
+    `xmlstarlet` (which differentiates between `-s name=value` for
+    literal `value` and `-p name=value` for XPath expression `value`),
+    white-space separated.
+   "mimetype" [string - "application/vnd.prima.page+xml"]
+    MIME type to register the output files under (should correspond to
+    `xsl` result)
+```
+
+</p></details>
+
+
+#### ocrd-make
+
 Workflows are processed like _software builds_: File groups (depending on one another) are the targets to be built in each workspace, and all workspaces are built recursively. A build is finished when all targets exist and none are older than their respective prerequisites (e.g. image files).
 
 To run a configuration...
 1. Activate working environment (virtualenv) and change to the target directory.
 2. Choose (or create) a workflow configuration makefile.  
    (Yes, you can have to look inside and browse its rules!)
-3. Execute: 
+3. Execute:
 
         cd WORKSPACE && make [OPTIONS] -f WORKFLOW-CONFIG.mk # or
         make -C WORKSPACE [OPTIONS] -f WORKFLOW-CONFIG.mk
@@ -126,50 +262,6 @@ To see the command sequence that would be executed for the chosen configuration 
 To run a workflow server for the command sequence that would be executed for the chosen configuration (to be controlled via `ocrd workflow client` or HTTP):
 
     [ocrd-]make -f CONFIGURATION.mk server
-
-
-To create workspaces from directories which contain image files:
-
-    ocrd-import DIRECTORY
-
-
-To get help for the import tool:
-
-    ocrd-import --help
-
-
-To perform various tasks via XSLT on PAGE-XML files (these all share the same options, including `--help`):
-
-    page-add-nsprefix-pc # adds namespace prefix 'pc:'
-    page-remove-metadataitem # remove all MetadataItem entries
-    page-remove-dead-regionrefs # remove non-existing regionRefs
-    page-remove-empty-readingorder # remove empty ReadingOrder or groups
-    page-remove-words # remove all Word (and Glyph) entries
-    page-remove-glyphs # remove all Glyph entries
-    page-fix-coords # replace negative values in coordinates by zero
-    page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
-    page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
-    page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
-    page-extract-lines # extract TextLine/TextEquiv/Unicode consequtively
-    page-extract-words # extract Word/TextEquiv/Unicode consequtively
-    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
-
-
-To perform the same transformations, but as a [workspace processor](https://ocr-d.de/en/spec/cli):
-
-    ocrd-page-transform -P xsl page-remove-words.xsl
-    cat <<'EOF' > my-transform.xsl
-    <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15">
-      <xsl:output method="xml" standalone="yes" encoding="UTF-8" omit-xml-declaration="no"/>
-      <xsl:template match="//pc:Word"/>
-      <xsl:template match="node()|text()|@*">
-        <xsl:copy>
-          <xsl:apply-templates select="node()|text()|@*"/>
-        </xsl:copy>
-      </xsl:template>
-    </xsl:stylesheet>
-    EOF
-    ocrd-page-transform -P xsl my-transform.xsl
 
 To spawn a new configuration file, in the directory of the source repository, do:
 
