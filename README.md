@@ -129,7 +129,9 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-extract-words # extract Word/TextEquiv/Unicode consecutively
     page-extract-glyphs # extract Glyph/TextEquiv/Unicode consecutively
 
+
 <details><summary>standalone CLI</summary><p>
+
 
 ```
 Usage: NAME [OPTIONS] [FILE]
@@ -149,6 +151,7 @@ Write the result to stdout, unless...
  -d / --diff is given - in which case the result will be compared to the
                         input and a patch shown on stdout.
 ```
+
 
 </p></details>
 
@@ -170,7 +173,9 @@ use `ocrd-page-transform` and pass the filename of the transformation as paramet
     EOF
     ocrd-page-transform -P xsl my-transform.xsl
 
+
 <details><summary>OCR-D CLI</summary><p>
+
 
 ```
 Usage: ocrd-page-transform [OPTIONS]
@@ -226,6 +231,7 @@ Parameters:
     MIME type to register the output files under (should correspond to
     `xsl` result)
 ```
+
 
 </p></details>
 
