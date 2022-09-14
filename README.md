@@ -144,7 +144,7 @@ with options:
  -D|--dump        just print the transformation stylesheet (XSL)
  -h|--help        just show this message
 
-Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "<NAME>.xsl"
+Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "NAME.xsl"
 Write the result to stdout, unless...
  -i / --inplace is given - in which case the result is written back to the
                            file silently, or
