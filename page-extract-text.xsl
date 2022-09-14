@@ -15,8 +15,10 @@
   <xsl:param name="pb" select="concat($newline,$newline)"/>
   <!-- line break -->
   <xsl:param name="lb" select="$newline"/>
-  <!-- text order: by element or by explicit ReadingOrder -->
+  <!-- text order: by element or by explicit ReadingOrder (reading-order|document) -->
   <xsl:param name="order" select="'reading-order'"/>
+  <!-- hierarchy level to extract text annotation from (region|line|word|glyph|highest) -->
+  <xsl:param name="level" select="'highest'"/>
   <!-- use key mechanism for IDREFs, because XSD does not support id mechanism -->
   <xsl:key name="textRegion" match="pc:TextRegion" use="@id"/>
   <xsl:template match="pc:PcGts/pc:Page">
@@ -39,12 +41,40 @@
   </xsl:template>
   <xsl:template name="getlines">
     <xsl:param name="region"/>
-    <xsl:for-each select="$region/pc:TextLine">
-      <xsl:if test="position()>1">
-        <xsl:value-of select="$lb"/>
-      </xsl:if>
-      <xsl:value-of select="pc:TextEquiv[1]/pc:Unicode" disable-output-escaping="yes"/>
-    </xsl:for-each>
+    <xsl:choose>
+      <xsl:when test="$level='region' or $level='highest' and $region/pc:TextEquiv/pc:Unicode">
+        <xsl:value-of select="$region/pc:TextEquiv[1]/pc:Unicode" disable-output-escaping="yes"/>
+      </xsl:when>
+      <xsl:otherwise>
+        <xsl:for-each select="$region/pc:TextLine">
+          <xsl:if test="position()>1">
+            <xsl:value-of select="$lb"/>
+          </xsl:if>
+          <xsl:choose>
+            <xsl:when test="$level='line' or $level='highest' and pc:TextEquiv/pc:Unicode">
+              <xsl:value-of select="pc:TextEquiv[1]/pc:Unicode" disable-output-escaping="yes"/>
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:for-each select="pc:Word">
+                <xsl:if test="position()>1">
+                  <xsl:text> </xsl:text>
+                </xsl:if>
+                <xsl:choose>
+                  <xsl:when test="$level='word' or $level='highest' and pc:TextEquiv/pc:Unicode">
+                    <xsl:value-of select="pc:TextEquiv[1]/pc:Unicode" disable-output-escaping="yes"/>
+                  </xsl:when>
+                  <xsl:otherwise>
+                    <xsl:for-each select="pc:Glyph">
+                      <xsl:value-of select="pc:TextEquiv[1]/pc:Unicode" disable-output-escaping="yes"/>
+                    </xsl:for-each>
+                  </xsl:otherwise>
+                </xsl:choose> <!-- word level? -->
+              </xsl:for-each>
+            </xsl:otherwise>
+          </xsl:choose> <!-- line level? -->
+        </xsl:for-each>
+      </xsl:otherwise>
+    </xsl:choose> <!-- region level? -->
   </xsl:template>
   <xsl:template name="getrefs">
     <xsl:param name="group"/>
