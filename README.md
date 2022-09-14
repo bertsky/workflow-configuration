@@ -130,30 +130,30 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-extract-glyphs # extract Glyph/TextEquiv/Unicode consecutively
 
 
-<details><summary>standalone CLI</summary><p>
+<details><summary>standalone CLI</summary>
 
 
-    ```
-    Usage: NAME [OPTIONS] [FILE]
+<pre>
+Usage: NAME [OPTIONS] [FILE]
 
-    with options:
-     -s name=value    set param NAME to string literal VALUE (repeatable)
-     -p name=value    set param NAME to XPath expression VALUE (repeatable)
-     -i|--inplace     overwrite input file with result of transformation
-     -d|--diff        show diff between input and output
-     -D|--dump        just print the transformation stylesheet (XSL)
-     -h|--help        just show this message
+with options:
+ -s name=value    set param NAME to string literal VALUE (repeatable)
+ -p name=value    set param NAME to XPath expression VALUE (repeatable)
+ -i|--inplace     overwrite input file with result of transformation
+ -d|--diff        show diff between input and output
+ -D|--dump        just print the transformation stylesheet (XSL)
+ -h|--help        just show this message
 
-    Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "<NAME>.xsl"
-    Write the result to stdout, unless...
-     -i / --inplace is given - in which case the result is written back to the
-                               file silently, or
-     -d / --diff is given - in which case the result will be compared to the
-                            input and a patch shown on stdout.
-    ```
+Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "<NAME>.xsl"
+Write the result to stdout, unless...
+ -i / --inplace is given - in which case the result is written back to the
+                           file silently, or
+ -d / --diff is given - in which case the result will be compared to the
+                        input and a patch shown on stdout.
+</pre>
 
 
-</p></details>
+</details>
 
 To perform the same transformations, but as a [workspace processor](https://ocr-d.de/en/spec/cli),
 use `ocrd-page-transform` and pass the filename of the transformation as parameter, e.g.:
@@ -174,66 +174,66 @@ use `ocrd-page-transform` and pass the filename of the transformation as paramet
     ocrd-page-transform -P xsl my-transform.xsl
 
 
-<details><summary>OCR-D CLI</summary><p>
+<details><summary>OCR-D CLI</summary>
 
 
-    ```
-    Usage: ocrd-page-transform [OPTIONS]
+<pre>
+Usage: ocrd-page-transform [OPTIONS]
 
-      apply arbitrary XSL transformation file for PAGE-XML
+  apply arbitrary XSL transformation file for PAGE-XML
 
-      > Processor base class and helper functions. A processor is a tool
-      > that implements the uniform OCR-D command-line interface for run-
-      > time data processing. That is, it executes a single workflow step,
-      > or a combination of workflow steps, on the workspace (represented by
-      > local METS). It reads input files for all or requested physical
-      > pages of the input fileGrp(s), and writes output files for them into
-      > the output fileGrp(s). It may take  a number of optional or
-      > mandatory parameters. Process the :py:attr:`workspace`  from the
-      > given :py:attr:`input_file_grp` to the given
-      > :py:attr:`output_file_grp` for the given :py:attr:`page_id` under
-      > the given :py:attr:`parameter`.
+  > Processor base class and helper functions. A processor is a tool
+  > that implements the uniform OCR-D command-line interface for run-
+  > time data processing. That is, it executes a single workflow step,
+  > or a combination of workflow steps, on the workspace (represented by
+  > local METS). It reads input files for all or requested physical
+  > pages of the input fileGrp(s), and writes output files for them into
+  > the output fileGrp(s). It may take  a number of optional or
+  > mandatory parameters. Process the :py:attr:`workspace`  from the
+  > given :py:attr:`input_file_grp` to the given
+  > :py:attr:`output_file_grp` for the given :py:attr:`page_id` under
+  > the given :py:attr:`parameter`.
 
-      > (This contains the main functionality and needs to be overridden by
-      > subclasses.)
+  > (This contains the main functionality and needs to be overridden by
+  > subclasses.)
 
-    Options:
-      -I, --input-file-grp USE        File group(s) used as input
-      -O, --output-file-grp USE       File group(s) used as output
-      -g, --page-id ID                Physical page ID(s) to process
-      --overwrite                     Remove existing output pages/images
-                                      (with --page-id, remove only those)
-      --profile                       Enable profiling
-      --profile-file                  Write cProfile stats to this file. Implies --profile
-      -p, --parameter JSON-PATH       Parameters, either verbatim JSON string
-                                      or JSON file path
-      -P, --param-override KEY VAL    Override a single JSON object key-value pair,
-                                      taking precedence over --parameter
-      -m, --mets URL-PATH             URL or file path of METS to process
-      -w, --working-dir PATH          Working directory of local workspace
-      -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
-                                      Log level
-      -C, --show-resource RESNAME     Dump the content of processor resource RESNAME
-      -L, --list-resources            List names of processor resources
-      -J, --dump-json                 Dump tool description as JSON and exit
-      -h, --help                      This help message
-      -V, --version                   Show version
+Options:
+  -I, --input-file-grp USE        File group(s) used as input
+  -O, --output-file-grp USE       File group(s) used as output
+  -g, --page-id ID                Physical page ID(s) to process
+  --overwrite                     Remove existing output pages/images
+                                  (with --page-id, remove only those)
+  --profile                       Enable profiling
+  --profile-file                  Write cProfile stats to this file. Implies --profile
+  -p, --parameter JSON-PATH       Parameters, either verbatim JSON string
+                                  or JSON file path
+  -P, --param-override KEY VAL    Override a single JSON object key-value pair,
+                                  taking precedence over --parameter
+  -m, --mets URL-PATH             URL or file path of METS to process
+  -w, --working-dir PATH          Working directory of local workspace
+  -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
+                                  Log level
+  -C, --show-resource RESNAME     Dump the content of processor resource RESNAME
+  -L, --list-resources            List names of processor resources
+  -J, --dump-json                 Dump tool description as JSON and exit
+  -h, --help                      This help message
+  -V, --version                   Show version
 
-    Parameters:
-       "xsl" [string - REQUIRED]
-        File path of the XSL transformation script
-       "xslt-params" [string - ""]
-        Assignment of XSL transformation parameter values, given as in
-        `xmlstarlet` (which differentiates between `-s name=value` for
-        literal `value` and `-p name=value` for XPath expression `value`),
-        white-space separated.
-       "mimetype" [string - "application/vnd.prima.page+xml"]
-        MIME type to register the output files under (should correspond to
-        `xsl` result)
-    ```
+Parameters:
+   "xsl" [string - REQUIRED]
+    File path of the XSL transformation script
+   "xslt-params" [string - ""]
+    Assignment of XSL transformation parameter values, given as in
+    `xmlstarlet` (which differentiates between `-s name=value` for
+    literal `value` and `-p name=value` for XPath expression `value`),
+    white-space separated.
+   "mimetype" [string - "application/vnd.prima.page+xml"]
+    MIME type to register the output files under (should correspond to
+    `xsl` result)
+</pre>
 
 
-</p></details>
+</details>
 
 
 #### ocrd-make
