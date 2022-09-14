@@ -111,15 +111,23 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-metadataitem # remove all MetadataItem entries
     page-remove-dead-regionrefs # remove non-existing regionRefs
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
+    page-remove-all-regions # remove all *Region (and TextLine and Word and Glyph) entries
+    page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of some type
+    page-remove-text-regions # remove all TextRegion (and TextLine and Word and Glyph) entries
+    page-remove-lines # remove all TextLine (and Word and Glyph) entries
     page-remove-words # remove all Word (and Glyph) entries
     page-remove-glyphs # remove all Glyph entries
+    page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements when TextEquiv is empty
+    page-sort-textequiv-index # sort TextEquiv by @index
     page-fix-coords # replace negative values in coordinates by zero
+    page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
     page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
-    page-extract-lines # extract TextLine/TextEquiv/Unicode consequtively
-    page-extract-words # extract Word/TextEquiv/Unicode consequtively
-    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consequtively
+    page-extract-text # extract (TextRegion|TextLine|Word|Glyph)/TextEquiv/Unicode consecutively
+    page-extract-lines # extract TextLine/TextEquiv/Unicode consecutively
+    page-extract-words # extract Word/TextEquiv/Unicode consecutively
+    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consecutively
 
 <details><summary>standalone CLI</summary><p>
 
