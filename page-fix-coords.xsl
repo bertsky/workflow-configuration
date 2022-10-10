@@ -2,7 +2,7 @@
 <xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:pc="http://schema.primaresearch.org/PAGE/gts/pagecontent/2019-07-15" xmlns:exslt="http://exslt.org/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.0" extension-element-prefixes="exslt">
   <xsl:output omit-xml-declaration="no" indent="yes" method="xml" encoding="utf-8"/>
   <!-- to enforce schema validity, convert negative point coordinates to zero -->
-  <xsl:template match="//pc:Coords/@points[contains(.,'-')]">
+  <xsl:template match="//pc:Coords/@points[contains(.,'-')]|//pc:Baseline/@points[contains(.,'-')]">
     <xsl:attribute name="points">
       <xsl:call-template name="convertpoints">
         <xsl:with-param name="text" select="string(.)"/>
