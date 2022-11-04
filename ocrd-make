@@ -197,12 +197,14 @@ if ((PARALLEL)); then
     export OPENBLAS_NUM_THREADS=$NTHREADS
     export VECLIB_MAXIMUM_THREADS=$NTHREADS
     export NUMEXPR_NUM_THREADS=$NTHREADS
+    export MKL_NUM_THREADS=$NTHREADS
 else
     export OMP_THREAD_LIMIT=1
     export OMP_NUM_THREADS=1
     export OPENBLAS_NUM_THREADS=1
     export VECLIB_MAXIMUM_THREADS=1
     export NUMEXPR_NUM_THREADS=1
+    export MKL_NUM_THREADS=1
 fi
 # FIXME: how about multiprocessing/threading in Tensorflow?
 
