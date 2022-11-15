@@ -80,7 +80,7 @@ function add_file {
     echo $1 $2 $3 $4 $5 >&3
 }
 
-set -e
+set -eE
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
@@ -179,13 +179,14 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         ${MIMETYPE_PAGE})
         # FIXME should really validate this is PAGE-XML (cf. core#353)
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
-           && fgrep -qw 'PcGts' "$file"; then
+                && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
             if ! ((numpageid)); then
                 base=${base/OCR-D-IMG/$group}
             fi
         elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
                 && fgrep -qw alto "$file"; then
+            mimetype=application/alto+xml
             group=OCR-D-SEG-ALTO
             if ! ((numpageid)); then
                 base=${base/OCR-D-IMG/$group}
