@@ -107,21 +107,22 @@ To get help for the import tool:
 To perform various tasks via XSLT on PAGE-XML files (these all share the same options, including `--help`):
 
     page-add-nsprefix-pc # adds namespace prefix 'pc:'
+    page-rm-nsprefix-pc # removes namespace prefix 'pc:'
+    page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
+    page-fix-coords # replace negative values in coordinates by zero
+    page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-remove-alternativeimages # remove selected AlternativeImage entries
     page-remove-metadataitem # remove all MetadataItem entries
     page-remove-dead-regionrefs # remove non-existing regionRefs
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
     page-remove-all-regions # remove all *Region (and TextLine and Word and Glyph) entries
-    page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of some type
     page-remove-text-regions # remove all TextRegion (and TextLine and Word and Glyph) entries
+    page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of some type
     page-remove-lines # remove all TextLine (and Word and Glyph) entries
     page-remove-words # remove all Word (and Glyph) entries
     page-remove-glyphs # remove all Glyph entries
     page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements when TextEquiv is empty
     page-sort-textequiv-index # sort TextEquiv by @index
-    page-fix-coords # replace negative values in coordinates by zero
-    page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
-    page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
     page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
     page-extract-text # extract (TextRegion|TextLine|Word|Glyph)/TextEquiv/Unicode consecutively
