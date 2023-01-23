@@ -106,7 +106,7 @@ function backout {
     exec 3>&-
     rm -f $FIFO
     rm -f mets.xml
-    rm -fr OCR-D-IMG
+    rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE
     popd > /dev/null
     critical "Cancelled '$DIRECTORY'"
     exit 1
