@@ -4,13 +4,35 @@
   <!-- recalculate each TextLine text content by concatenating from its Word entries
        (but only if the TextLine does contain Words)
        ignore non-first TextEquivs, intersperse with space characters -->
-  <xsl:template match="//pc:TextLine[pc:Word]/pc:TextEquiv[1]/pc:Unicode/text()">
-    <xsl:for-each select="../../../pc:Word">
+  <xsl:template match="//pc:TextLine[pc:Word]/pc:TextEquiv[1]/pc:Unicode/text()" name="concatenate">
+    <xsl:param name="context" select="../../.."/>
+    <xsl:for-each select="$context/pc:Word">
       <xsl:copy-of select="pc:TextEquiv[1]/pc:Unicode/text()"/>
       <xsl:if test="not(position()=last())">
         <xsl:text> </xsl:text>
       </xsl:if>
     </xsl:for-each>
+  </xsl:template>
+  <!-- if a TextLine does not have a TextEquiv yet
+       create it, and call the concatenation by name
+  -->
+  <xsl:template match="//pc:TextLine[pc:Word and not(pc:TextEquiv)]">
+    <xsl:copy>
+      <!-- keep correct order (attributes, elements before TextEquiv, elements after TextEquiv -->
+      <xsl:apply-templates select="@*|node()[local-name()!='TextStyle' and local-name()!='UserDefined' and local-name()!='Labels']"/>
+      <xsl:if test="not(pc:TextEquiv)">
+        <xsl:element name="pc:TextEquiv">
+          <xsl:element name="pc:Unicode">
+            <xsl:call-template name="concatenate">
+              <xsl:with-param name="context" select="."/>
+            </xsl:call-template>
+          </xsl:element>
+        </xsl:element>
+      </xsl:if>
+      <xsl:apply-templates select="pc:TextStyle"/>
+      <xsl:apply-templates select="pc:UserDefined"/>
+      <xsl:apply-templates select="pc:Labels"/>
+    </xsl:copy>
   </xsl:template>
   <xsl:template match="@*|node()" name="identity">
     <xsl:copy>
