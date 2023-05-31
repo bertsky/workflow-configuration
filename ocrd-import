@@ -163,7 +163,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     base="${name%$suffix}"
     # XSD ID must start with letter and not contain colons or spaces
     # also, avoid . in IDs, because downstream it will confuse filename suffix detection
-    base="${base//[ :.]/_}"
+    base="${base//[ :.,]/_}"
     if ! [[ ${base:0:1} =~ [a-zA-Z] ]]; then
         base=f${base}
     fi
@@ -273,7 +273,7 @@ rm -f $FIFO
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
-wait
+wait -n
 popd > /dev/null
 
 info "Success on '$DIRECTORY'"
