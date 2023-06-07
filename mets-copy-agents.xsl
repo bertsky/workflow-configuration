@@ -4,7 +4,7 @@
   <xsl:preserve-space elements="*"/>
   <!-- opens an external METS file $other-mets and copies its metsHdr/agent nodes -->
   <xsl:param name="other-mets" select="'mets.xml'"/>
-  <xsl:variable name="other-doc" select="document($other-mets)"/>
+  <xsl:variable name="other-doc" select="document($other-mets, /)"/>
   <xsl:template match="/mets:mets/mets:metsHdr">
     <xsl:copy>
       <xsl:apply-templates select="@*|node()"/>
