@@ -121,7 +121,9 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-lines # remove all TextLine (and Word and Glyph) entries
     page-remove-words # remove all Word (and Glyph) entries
     page-remove-glyphs # remove all Glyph entries
-    page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements when TextEquiv is empty
+    page-ensure-readingorder # generate ReadingOrder hierarchy from recursive document order if empty
+    page-ensure-textequiv-index # set TextEquiv/@index attributes from element order
+    page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements if empty
     page-sort-textequiv-index # sort TextEquiv by @index
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
     page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
