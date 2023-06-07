@@ -111,13 +111,13 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
     page-fix-coords # replace negative values in coordinates by zero
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
-    page-remove-alternativeimages # remove selected AlternativeImage entries
+    page-remove-alternativeimages # remove $which [last] AlternativeImage entries at hierarchy $level [page]
     page-remove-metadataitem # remove all MetadataItem entries
     page-remove-dead-regionrefs # remove non-existing regionRefs
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
     page-remove-all-regions # remove all *Region (and TextLine and Word and Glyph) entries
     page-remove-text-regions # remove all TextRegion (and TextLine and Word and Glyph) entries
-    page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of some type
+    page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of $type
     page-remove-lines # remove all TextLine (and Word and Glyph) entries
     page-remove-words # remove all Word (and Glyph) entries
     page-remove-glyphs # remove all Glyph entries
@@ -127,10 +127,10 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-sort-textequiv-index # sort TextEquiv by @index
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
     page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
-    page-extract-text # extract (TextRegion|TextLine|Word|Glyph)/TextEquiv/Unicode consecutively
-    page-extract-lines # extract TextLine/TextEquiv/Unicode consecutively
-    page-extract-words # extract Word/TextEquiv/Unicode consecutively
-    page-extract-glyphs # extract Glyph/TextEquiv/Unicode consecutively
+    page-extract-text # extract TextEquiv/Unicode from TextRegion|TextLine|Word|Glyph $level [highest] consecutively, in $order [reading-order], interspersed by $pb and $lb
+    page-extract-lines # extract TextEquiv/Unicode from TextLine consecutively, in $order [reading-order]
+    page-extract-words # extract TextEquiv/Unicode from Word consecutively
+    page-extract-glyphs # extract TextEquiv/Unicode from Glyph consecutively
 
 
 <details><summary>standalone CLI</summary>
@@ -242,6 +242,41 @@ Parameters:
 
 </details>
 
+#### METS transformations
+
+Besides the transformations for PAGE-XML above, which are wrapped both as OCR-D CLI `ocrd-page-transform`
+and standlone CLIs `page-...`, this module installs some XSL transformations for METS-XML, which are
+likewise wrapped as standalone CLIs `mets-...`:
+
+    mets-add-nsprefix-mets # add namespace prefix mets:
+    mets-alias-filegrp # zero-cost copy of fileGrp $input [FULLTEXT] as fileGrp $output [ALTO]
+    mets-copy-agents # copy all metsHdr/agent from $other-mets [mets.xml]
+
+<details><summary>standalone CLI</summary>
+
+
+<pre>
+Usage: NAME [OPTIONS] [FILE]
+
+with options:
+ -s name=value    set param NAME to string literal VALUE (repeatable)
+ -p name=value    set param NAME to XPath expression VALUE (repeatable)
+ -i|--inplace     overwrite input file with result of transformation
+ -P|--pretty      pretty-print output (line breaks with indentation)
+ -d|--diff        show diff between input and output
+ -D|--dump        just print the transformation stylesheet (XSL)
+ -h|--help        just show this message
+
+Open METS-XML file FILE (or stdin) and apply the XSL transformation "NAME.xsl"
+Write the result to stdout, unless...
+ -i / --inplace is given - in which case the result is written back to the
+                           file silently, or
+ -d / --diff is given - in which case the result will be compared to the
+                        input and a patch shown on stdout.
+</pre>
+
+
+</details>
 
 #### ocrd-make
 

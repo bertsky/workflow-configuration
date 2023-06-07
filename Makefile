@@ -65,7 +65,7 @@ $(SHPROGS:%=$(BINDIR)/%): $(BINDIR)/%: %
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
 	chmod +x $@
 
-$(XSLPROGS:%=$(BINDIR)/%): %: page-transform
+$(XSLPROGS:%=$(BINDIR)/%): %: xsl-transform
 	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
 	chmod +x $@
 

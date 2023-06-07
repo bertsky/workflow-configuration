@@ -14,6 +14,13 @@ function debug { LEVEL=DEBUG log "$1"; }
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 name=$(basename $0)
+if [[ "$name" =~ ^page- ]]; then
+    type="PAGE-XML"
+elif [[ "$name" =~ ^mets- ]]; then
+    type="METS-XML"
+else
+    type="input"
+fi
 parameters=()
 pretty=0
 inplace=0
@@ -33,7 +40,7 @@ with options:
  -D|--dump        just print the transformation stylesheet (XSL)
  -h|--help        just show this message
 
-Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "$name.xsl"
+Open $input file FILE (or stdin) and apply the XSL transformation "$name.xsl"
 Write the result to stdout, unless...
  -i / --inplace is given - in which case the result is written back to the
                            file silently, or 
