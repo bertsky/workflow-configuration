@@ -143,6 +143,7 @@ with options:
  -s name=value    set param NAME to string literal VALUE (repeatable)
  -p name=value    set param NAME to XPath expression VALUE (repeatable)
  -i|--inplace     overwrite input file with result of transformation
+ -P|--pretty      pretty-print output (line breaks with indentation)
  -d|--diff        show diff between input and output
  -D|--dump        just print the transformation stylesheet (XSL)
  -h|--help        just show this message
@@ -230,7 +231,10 @@ Parameters:
     `xmlstarlet` (which differentiates between `-s name=value` for
     literal `value` and `-p name=value` for XPath expression `value`),
     white-space separated.
-   "mimetype" [string - "application/vnd.prima.page+xml"]
+   "pretty-print" [number - 0]
+    Reformat with line breaks and this many spaces of indentation after
+    XSL transformation (unless zero).
+    "mimetype" [string - "application/vnd.prima.page+xml"]
     MIME type to register the output files under (should correspond to
     `xsl` result)
 </pre>

@@ -24,11 +24,17 @@ declare -A NAMESPACES
 eval "NAMESPACES=( $(ocrd bashlib constants NAMESPACES) )"
 
 function process_file {
-    local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" param="$5" out_fpath="$6" out_id="$7" out_file_grp="$8"
-    
+    local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" param="$5" out_fpath="$6" out_id="$7" out_file_grp="$8" pretty=$9
+
+    if ((pretty)); then
+        pprint="xmlstarlet fo -s $pretty"
+    else
+        pprint="cat"
+    fi
+
     if ((PRESERVE_NAMESPACE)); then
         # preserve namespace and prefix
-        xmlstarlet tr "$xsl" $param "$in_fpath" >"$out_fpath"
+        xmlstarlet tr "$xsl" $param "$in_fpath" | $pprint >"$out_fpath"
     else
         # stylesheet transforms to standard namespace:
         xmlstarlet tr <(cat <<EOF
@@ -48,7 +54,7 @@ function process_file {
   </xsl:template>
 </xsl:stylesheet>
 EOF
-) "$in_fpath" | xmlstarlet tr "$xsl" $param >"$out_fpath"
+) "$in_fpath" | xmlstarlet tr "$xsl" $param | $pprint >"$out_fpath"
     fi
 
 }
@@ -62,6 +68,7 @@ function main {
 
     xsl="${params[xsl]}"
     xsltparam="${params[xslt-params]}"
+    pretty="${params[pretty-print]}"
     if test -e "$xsl"; then
         xsl="$(realpath "$xsl")"
     elif ocrd__list_resources | fgrep -q "/$xsl"; then
@@ -87,7 +94,7 @@ function main {
         mkdir -p $out_file_grp
 
         ocrd log info "processing PAGE-XML input file $in_id ($in_pageId)"
-        process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$xsltparam" "$out_fpath" "$out_id" "$out_file_grp"
+        process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$xsltparam" "$out_fpath" "$out_id" "$out_file_grp" $pretty
 
         # Add PAGE file to METS
         declare -a options

@@ -15,6 +15,7 @@ function debug { LEVEL=DEBUG log "$1"; }
 
 name=$(basename $0)
 parameters=()
+pretty=0
 inplace=0
 diff=0
 while (($#)); do
@@ -27,6 +28,7 @@ with options:
  -s name=value    set param NAME to string literal VALUE (repeatable)
  -p name=value    set param NAME to XPath expression VALUE (repeatable)
  -i|--inplace     overwrite input file with result of transformation
+ -P|--pretty      pretty-print output (line breaks with indentation)
  -d|--diff        show diff between input and output
  -D|--dump        just print the transformation stylesheet (XSL)
  -h|--help        just show this message
@@ -49,6 +51,10 @@ EOF
         -D|--dump)
             cat "$SHAREDIR"/$name.xsl
             exit
+            ;;
+        -P|--pretty)
+            pretty=1
+            shift
             ;;
         -i|--inplace)
             inplace=1
@@ -76,10 +82,13 @@ if test "x$file" = x-; then
     cat > $file
 fi
 output="$(xmlstarlet tr "$SHAREDIR"/$name.xsl "${parameters[@]}" "$file")"
+if ((pretty)); then
+    output="$(echo "$output" | xmlstarlet fo -s 2 -)"
+fi
 if ((diff)); then
     diff -u "$file" <(echo "$output")
 elif ((inplace)); then
-    echo "$output" | sponge "$file"
+    echo "$output" > "$file"
 else
     echo "$output"
 fi
