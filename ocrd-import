@@ -106,7 +106,7 @@ function backout {
     exec 3>&-
     rm -f $FIFO
     rm -f mets.xml
-    rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE
+    rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE 2>/dev/null
     popd > /dev/null
     critical "Cancelled '$DIRECTORY'"
     exit 1
@@ -149,13 +149,12 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     for suffix in "${skip[@]}"; do
         if test "$file" != "${file%$suffix}"; then
             info "skipping file '$file'"
-            file=
-            break
+            exit 0 # continue
         fi
     done
     if test -z "$file"; then
         warning "ignoring empty file $file"
-        exit # continue
+        exit 0 # continue
     fi
     # guess MIME type
     name="$(basename "$file")"
@@ -193,7 +192,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit #continue
+            exit 0 #continue
         else
             critical "unknown type of file '$file'"
             false
@@ -226,14 +225,14 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
                     add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
-                exit # continue
+                exit 0 # continue
             else
                 file="${files[0]}"
                 file="${file#./}"
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit # continue
+            exit 0 # continue
         else
             critical "unknown type of file '$file'"
             false
