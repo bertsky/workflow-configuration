@@ -11,6 +11,7 @@ function debug { ocrd log -n ocrd-import debug "$1"; }
 ignore=0
 njobs=1
 skip=()
+regex=()
 convert=1
 dpi=300
 numpageid=1
@@ -23,7 +24,8 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 with options:
  -i|--ignore      keep going after unknown file types
  -j|--jobs NJOBS  run pages by NJOBS jobs in parallel
- -s|--skip SUFFIX ignore file names ending in given SUFFIX
+ -s|--skip SUFFIX ignore file names ending in given SUFFIX (repeatable)
+ -R|--regex EXPR  only include paths matching given EXPR (repeatable)
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
  -P|--nonnum-ids  do not use numeric pageIds but basename patterns
@@ -47,6 +49,11 @@ EOF
         -s|--skip)
             shift
             skip+=("$1")
+            shift
+            ;;
+        -R|--regex)
+            shift
+            regex+=("$1")
             shift
             ;;
         -C|--no-convert)
@@ -152,6 +159,20 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             exit 0 # continue
         fi
     done
+    if ((${#regex[*]})); then
+        match=0
+        for expr in "${regex[@]}"; do
+            if [[ "$file" =~ $expr ]]; then
+                match=1
+                break
+            fi
+        done
+        if ((match)); then
+            info "matching file '$file'"
+        else
+            exit 0 # continue
+        fi
+    fi
     if test -z "$file"; then
         warning "ignoring empty file $file"
         exit 0 # continue
