@@ -18,6 +18,7 @@ which ocrd >/dev/null 2>/dev/null || { echo >&2 "ocrd not in \$PATH. Panicking";
 
 SHAREDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 PRESERVE_NAMESPACE=1 # 1 preserves the input file's PAGE namespace prefix and URL (version)
+ADD_METADATAITEM=1 # 1 adds a MetadataItem detailling the transform params used
 
 MIMETYPE_PAGE=$(ocrd bashlib constants MIMETYPE_PAGE)
 declare -A NAMESPACES
@@ -26,33 +27,22 @@ eval "NAMESPACES=( $(ocrd bashlib constants NAMESPACES) )"
 function process_file {
     local in_fpath="$1" in_id="$2" in_pageId="$3" xsl="$4" param="$5" out_fpath="$6" out_id="$7" out_file_grp="$8" pretty="$9"
 
-    function addmeta {
-        # to become independent of whether and what
-        # namespace prefix is used for PAGE-XML,
-        # we first have to know the namespace:
-        namespace=$(xmlstarlet sel -t -m '/*[1]' -v 'namespace-uri()' "$in_fpath")
-        declare -a options
-        options+=( --no-doc-namespace ed
-                   -N "pc=$namespace"
-                   -u '/pc:PcGts/@pcGtsId'
-                   -v "$out_id")
-        xmlstarlet "${options[@]}"
-    }
-
-    function pprint {
-        if ((pretty)); then
-            xmlstarlet fo -s $pretty
+    # to become independent of whether and what
+    # namespace prefix is used for PAGE-XML,
+    # we first have to know the namespace:
+    namespace=$(xmlstarlet sel -t -m '/*[1]' -v 'namespace-uri()' "$in_fpath")
+    # now (using --no-doc-namespace) we can
+    # safely query with -N pc=${namespace}
+    # and safely add with prefix ${ns_prefix}:
+    ns_prefix=$(xmlstarlet sel -t -m '/*[1]' -v 'substring-before(name(),"PcGts")' "$in_fpath"; true)
+    
+    function ingest {
+        if ((PRESERVE_NAMESPACE)); then
+            # preserve namespace and prefix
+            cat "$1"
         else
-            cat
-        fi
-    }
-
-    if ((PRESERVE_NAMESPACE)); then
-        # preserve namespace and prefix
-        xmlstarlet tr "$xsl" $param "$in_fpath" | pprint | addmeta >"$out_fpath"
-    else
-        # stylesheet transforms to standard namespace:
-        xmlstarlet tr <(cat <<EOF
+            # stylesheet transforms to standard namespace:
+            xmlstarlet tr <(cat <<EOF
 <?xml version="1.0" encoding="ISO-8859-1"?>
 <xsl:stylesheet version="1.0"
   xmlns:xsl="${NAMESPACES[xsl]}"
@@ -69,8 +59,89 @@ function process_file {
   </xsl:template>
 </xsl:stylesheet>
 EOF
-) "$in_fpath" | xmlstarlet tr "$xsl" $param | pprint | addmeta >"$out_fpath"
-    fi
+                           ) "$1"
+        fi
+    }
+
+    function addmeta {
+        declare -a options
+        options+=( --no-doc-namespace ed
+                   -N "pc=$namespace"
+                   -u '/pc:PcGts/@pcGtsId'
+                   -v "$out_id" )
+        if ((ADD_METADATAITEM)); then
+            # insert agent
+            options+=(
+                -s '/pc:PcGts/pc:Metadata'
+                -t elem -n "${ns_prefix}MetadataItem"
+                # bind previous element to "new-item":
+                --var new-item '$prev'
+                -s '$new-item' -t attr -n type
+                               -v "processingStep"
+                -s '$new-item' -t attr -n name
+                               -v "*"
+                -s '$new-item' -t attr -n value
+                               -v "$OCRD_TOOL_NAME"
+                # add "Labels" for params:
+                -s '$new-item' -t elem -n "${ns_prefix}Labels"
+                # bind previous element to "new-labels":
+                --var new-labels '$prev'
+                -s '$new-labels' -t attr -n externalModel
+                                         -v ocrd-tool
+                -s '$new-labels' -t attr -n externalId
+                                         -v parameters
+            )
+            for key in ${!params[@]}; do
+                # shellcheck disable=SC2016
+                options+=( # add another "Label":
+                    -s '$new-labels' -t elem -n "${ns_prefix}Label"
+                    # bind previous element to "new-label":
+                    --var new-label '$prev'
+                    -s '$new-label' -t attr -n value
+                                    -v "${params[$key]}"
+                    -s '$new-label' -t attr -n type
+                                    -v "$key" )
+            done
+            tool_version=$(ocrd ocrd-tool "$OCRD_TOOL_JSON" version | sed 's,^Version ",,;s,".*$,,')
+            core_version=$(ocrd --version | sed 's/ocrd, version //')
+            options+=(
+                # add "Labels" for versions:
+                -s '$new-item' -t elem -n "${ns_prefix}Labels"
+                # bind previous element to "new-labels":
+                --var new-labels '$prev'
+                # add another "Label":
+                -s '$new-labels' -t attr -n externalModel
+                                         -v ocrd-tool
+                -s '$new-labels' -t attr -n externalId
+                                         -v version
+                -s '$new-labels' -t elem -n "${ns_prefix}Label"
+                # bind previous element to "new-label":
+                --var new-label '$prev'
+                -s '$new-label' -t attr -n value
+                                -v "$tool_version"
+                -s '$new-label' -t attr -n type
+                                -v "$OCRD_TOOL_NAME"
+                -s '$new-labels' -t elem -n "${ns_prefix}Label"
+                # bind previous element to "new-label":
+                --var new-label '$prev'
+                -s '$new-label' -t attr -n value
+                                -v "$core_version"
+                -s '$new-label' -t attr -n type
+                                -v "ocrd/core"
+            )
+        fi
+        xmlstarlet "${options[@]}"
+    }
+
+    function pprint {
+        if ((pretty)); then
+            xmlstarlet fo -s $pretty
+        else
+            cat
+        fi
+    }
+
+    ingest "$in_fpath" | xmlstarlet tr "$xsl" $param | addmeta | pprint >"$out_fpath"
 
 }
     
