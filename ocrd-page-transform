@@ -183,20 +183,24 @@ function main {
         process_file "$in_fpath" "$in_id" "$in_pageId" "$xsl" "$xsltparam" "$out_fpath" "$out_id" "$out_file_grp" $pretty
 
         # Add PAGE file to METS
-        declare -a options
+        declare -a add_options
         if [ -n "$in_pageId" ]; then
-            options=( -g $in_pageId )
+            add_options=( -g $in_pageId )
         else
-            options=()
+            add_options=()
         fi
         if [[ "${ocrd__argv[overwrite]}" == true ]];then
-            options+=( --force )
+            add_options+=( --force )
         fi
-        options+=( -G $out_file_grp
-                   -m $out_mimetype
-                   -i "$out_id"
-                   "$out_fpath" )
-        ocrd workspace add "${options[@]}"
+        add_options+=( -G $out_file_grp
+                       -m $out_mimetype
+                       -i "$out_id"
+                       "$out_fpath" )
+        declare -a workspace_options
+        if [[ -n "${ocrd__argv[mets_server_url]}" ]];then
+            workspace_options+=( -U "${ocrd__argv[mets_server_url]}" )
+        fi
+        ocrd workspace "${workspace_options[@]}" add "${add_options[@]}"
     done
 }
 
