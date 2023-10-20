@@ -150,7 +150,7 @@ function main {
     # shellcheck source=../core/ocrd/bashlib/lib.bash
     source $(ocrd bashlib filename)
     ocrd__wrap "$SHAREDIR/ocrd-tool.json" "ocrd-page-transform" "$@"
-    ocrd__minversion 2.58.0
+    ocrd__minversion 2.58.1
 
     local xsl="${params[xsl]}"
     local xsltparam="${params[xslt-params]}"
