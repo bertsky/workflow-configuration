@@ -93,7 +93,7 @@ if ((pretty)); then
     output="$(echo "$output" | xmlstarlet fo -s 2 -)"
 fi
 if ((diff)); then
-    diff -u "$file" <(echo "$output")
+    diff -u <(cat "$file" | if ((pretty)); then xmlstarlet fo -s 2 -; fi) <(echo "$output")
 elif ((inplace)); then
     echo "$output" > "$file"
 else
