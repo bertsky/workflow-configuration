@@ -169,6 +169,7 @@ function main {
         local in_fpath="$(ocrd__input_file $n url)"
         local in_id="$(ocrd__input_file $n ID)"
         local in_pageId="$(ocrd__input_file $n pageId)"
+        local in_mimetype="$(ocrd__input_file $n mimetype)"
         local out_id="$(ocrd__input_file $n outputFileId)"
         local out_fpath="$out_file_grp/${out_id}.xml"
         local out_mimetype="${params[mimetype]}"
