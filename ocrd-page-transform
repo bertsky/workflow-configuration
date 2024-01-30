@@ -166,7 +166,7 @@ function main {
     local out_file_grp=${ocrd__argv[output_file_grp]}
 
     for ((n=0; n<${#ocrd__files[*]}; n++)); do
-        local in_fpath="$(ocrd__input_file $n url)"
+        local in_fpath="$(ocrd__input_file $n local_filename)"
         local in_id="$(ocrd__input_file $n ID)"
         local in_pageId="$(ocrd__input_file $n pageId)"
         local in_mimetype="$(ocrd__input_file $n mimetype)"
