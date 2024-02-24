@@ -1,15 +1,44 @@
 #!/usr/bin/env bash
 
-function critical { ocrd log -n ocrd-import critical "$1"; }
-function error { ocrd log -n ocrd-import error "$1"; }
-function warning { ocrd log -n ocrd-import warning "$1"; }
-function info { ocrd log -n ocrd-import info "$1"; }
-function debug { ocrd log -n ocrd-import debug "$1"; }
+function cleanup {
+    set +e
+    exec 4>&-
+    exec 5>&-
+    exec 6>&-
+    exec 7>&-
+    exec 8>&-
+    test -v FIFO && rm -f $FIFO 2>/dev/null
+    test -v LOG_critical && rm -f $LOG_critical 2>/dev/null
+    test -v LOG_error && rm -f $LOG_error 2>/dev/null
+    test -v LOG_warning && rm -f $LOG_warning 2>/dev/null
+    test -v LOG_info && rm -f $LOG_info 2>/dev/null
+    test -v LOG_debug && rm -f $LOG_debug 2>/dev/null
+}
+trap cleanup EXIT
+
+function logger {
+    eval export LOG_$1=$(mktemp -u)
+    eval mkfifo \$LOG_$1
+    eval ocrd log -n ocrd-import $1 - \<\$LOG_$1 \&
+    eval export PID_LOG_$1=$!
+    eval exec $2\>\$LOG_$1
+}
+
+logger critical 4
+logger error 5
+logger warning 6
+logger info 7
+logger debug 8
+
+function critical { echo "$1" >& 4; }
+function error { echo "$1" >& 5; }
+function warning { echo "$1" >& 6; }
+function info { echo "$1" >& 7; }
+function debug { echo "$1" >& 8; }
 
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 ignore=0
-njobs=1
 skip=()
 regex=()
 convert=1
@@ -24,7 +53,6 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 
 with options:
  -i|--ignore      keep going after unknown file types
- -j|--jobs NJOBS  run pages by NJOBS jobs in parallel
  -s|--skip SUFFIX ignore file names ending in given SUFFIX (repeatable)
  -R|--regex EXPR  only include paths matching given EXPR (repeatable)
  -C|--no-convert  do not attempt to convert image file types
@@ -43,9 +71,9 @@ EOF
             ignore=1
             shift
             ;;
+        # keep just for backwards compatibility:
         -j|--jobs)
             shift
-            njobs=$1
             shift
             ;;
         -s|--skip)
@@ -114,26 +142,16 @@ mkfifo $FIFO
 
 # trap to back-off from mets.xml and subdir in case of failure:
 function backout {
-    kill $PID_BULKADD
-    wait &>/dev/null
+    set +e
+    critical "Cancelled '$DIRECTORY'"
     exec 3>&-
-    rm -f $FIFO
+    test -v PID_BULKADD && kill $PID_BULKADD
     rm -f mets.xml
     rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE 2>/dev/null
     popd > /dev/null
-    critical "Cancelled '$DIRECTORY'"
     exit 1
 }
-trap backout ERR
-# trap to receive cancel signal from subshell:
-function cancel {
-    njobs=0
-}
-trap cancel HUP
-# trap to signal failure to parent from subshell:
-function rollback {
-    kill -HUP $PID_TOP
-}
+trap backout ERR INT
 
 pushd "$DIRECTORY" > /dev/null
 ocrd workspace init
@@ -149,13 +167,6 @@ IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
     IFS=$' \t\n'
     let num++ || true
-    ((njobs))
-    if (($(jobs -p | wc -l) > $njobs)); then
-        wait -n # first wait for next subshell (from other iteration) to finish
-    fi
-    (
-    set -e
-    trap rollback ERR
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
@@ -268,14 +279,17 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     fi
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
-    )&
 done
+
+# undo backout trap
+trap "" ERR
+# finish bulk-add
 exec 3>&-
-rm -f $FIFO
+wait $PID_BULKADD
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
-wait -n
 popd > /dev/null
 
 info "Success on '$DIRECTORY'"
+
