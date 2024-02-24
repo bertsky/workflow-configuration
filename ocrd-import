@@ -189,9 +189,6 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     fi
     if ! ((numpageid)); then
         page=$base
-        # file IDs must contain group and page ID, or processors will have to
-        # prevent ID clashes by using numeric IDs
-        base=${group}_"$base"
     fi
     mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
     #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
@@ -201,16 +198,10 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
                 && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
         elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
                 && fgrep -qw alto "$file"; then
             mimetype=application/alto+xml
             group=OCR-D-SEG-ALTO
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
             exit 0 #continue
@@ -240,9 +231,8 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             info "converted '$file' to 'OCR-D-IMG/${base}_*.tif' (${#files[*]} files)"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
-                    file="${file#./}"
+                    file="${file#OCR-D-IMG/}"
                     base="${file%.tif}"
-                    base="${base#OCR-D-IMG/}"
                     add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
@@ -260,30 +250,11 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         fi
         ;;
     esac
-    IFS=$'\n'
-    clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
-    IFS=$' \t\n'
-    n=0
-    for clash in "${clashes[@]}"; do
-        let n++ || true
-        IFS=$'\t'
-        fields=($clash)
-        IFS=$' \t\n'
-        # if image, allow PAGE with matching basename
-        # if PAGE, allow image with matching basename
-        if if test $group = OCR-D-IMG; then
-               test "x${fields[1]}" = x${MIMETYPE_PAGE}
-           else [[ "${fields[1]}" =~ image/ ]]
-           fi; then
-            # use existing pageId
-            page=${fields[2]}
-            # use new file ID
-            base="$(basename "$file")" # (including suffix)
-            base="${base// /_}"
-        else
-            warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
-        fi
-    done
+    # file IDs must contain fileGrp, otherwise processors will have to prevent
+    # ID clashes by using numeric IDs
+    if [[ "$base" != $group* ]]; then
+        base=${group}_"$base"
+    fi
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
     )&
