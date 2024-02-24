@@ -15,6 +15,7 @@ regex=()
 convert=1
 dpi=300
 numpageid=1
+onlybasename=0
 while (($#)); do
     case "${1:--h}" in
         -h|-[-]help)
@@ -29,6 +30,7 @@ with options:
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
  -P|--nonnum-ids  do not use numeric pageIds but basename patterns
+ -B|--basename    only use basename for IDs
 
 Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing...
 * all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
@@ -71,6 +73,10 @@ EOF
             ;;
         -P|--nonnum-ids)
             numpageid=0
+            shift
+            ;;
+        -B|--basename)
+            onlybasename=1
             shift
             ;;
         *)
@@ -180,7 +186,13 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
+    mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
+    # create ID from path
     base="${name%$suffix}"
+    name="$(dirname "${file#./}")"
+    if test "$name" != . && ! ((onlybasename)); then
+        base="${name//\//_}_$base"
+    fi
     # XSD ID must start with letter and not contain colons or spaces
     # also, avoid . in IDs, because downstream it will confuse filename suffix detection
     base="${base//[ :.,]/_}"
@@ -190,7 +202,6 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     if ! ((numpageid)); then
         page=$base
     fi
-    mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
     #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
     case "$mimetype" in
         ${MIMETYPE_PAGE})
