@@ -2,39 +2,31 @@
 
 function cleanup {
     set +e
-    exec 4>&-
-    exec 5>&-
-    exec 6>&-
-    exec 7>&-
-    exec 8>&-
+    exec ${critical[1]} >&- 2>/dev/null
+    exec ${error[1]} >&- 2>/dev/null
+    exec ${warning[1]} >&- 2>/dev/null
+    exec ${info[1]} >&- 2>/dev/null
+    exec ${debug[1]} >&- 2>/dev/null
     test -v FIFO && rm -f $FIFO 2>/dev/null
-    test -v LOG_critical && rm -f $LOG_critical 2>/dev/null
-    test -v LOG_error && rm -f $LOG_error 2>/dev/null
-    test -v LOG_warning && rm -f $LOG_warning 2>/dev/null
-    test -v LOG_info && rm -f $LOG_info 2>/dev/null
-    test -v LOG_debug && rm -f $LOG_debug 2>/dev/null
 }
 trap cleanup EXIT
 
-function logger {
-    eval export LOG_$1=$(mktemp -u)
-    eval mkfifo \$LOG_$1
-    eval ocrd log -n ocrd-import $1 - \<\$LOG_$1 \&
-    eval export PID_LOG_$1=$!
-    eval exec $2\>\$LOG_$1
-}
+# FIXME: bash says under BUGS "There may be only one active coprocess at a time." which causes spurious warnings here.
+# (We therefore temporarily silence stderr to silence the execute_coproc warnings.)
+exec 4>&2
+{
+coproc critical { ocrd log -n ocrd-import critical - >& 4 2>& 4; }
+coproc error { ocrd log -n ocrd-import error - >& 4 2>& 4; }
+coproc warning { ocrd log -n ocrd-import warning - >& 4 2>& 4; }
+coproc info { ocrd log -n ocrd-import info - >& 4 2>& 4; }
+coproc debug { ocrd log -n ocrd-import debug - >& 4 2>& 4; }
+} 2>/dev/null
 
-logger critical 4
-logger error 5
-logger warning 6
-logger info 7
-logger debug 8
-
-function critical { echo "$1" >& 4; }
-function error { echo "$1" >& 5; }
-function warning { echo "$1" >& 6; }
-function info { echo "$1" >& 7; }
-function debug { echo "$1" >& 8; }
+function critical { echo "$1" >& ${critical[1]}; }
+function error { echo "$1" >& ${error[1]}; }
+function warning { echo "$1" >& ${warning[1]}; }
+function info { echo "$1" >& ${info[1]}; }
+function debug { echo "$1" >& ${debug[1]}; }
 
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
@@ -153,8 +145,9 @@ function backout {
 }
 trap backout ERR INT
 
+info "analysing '$DIRECTORY'"
 pushd "$DIRECTORY" > /dev/null
-ocrd workspace init
+ocrd workspace init > /dev/null
 ocrd workspace bulk-add -r '(?P<grp>[^ ]+) (?P<mime>[^ ]+) (?P<page>[^ ]+) (?P<file>[^ ]+) (?P<src>.*)' \
      -G '{{ grp }}' -m '{{ mime }}' -g '{{ page }}' -i '{{ file }}' -S '{{ src }}' - <$FIFO &
 
