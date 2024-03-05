@@ -2,11 +2,6 @@
 
 function cleanup {
     set +e
-    exec ${critical[1]} >&- 2>/dev/null
-    exec ${error[1]} >&- 2>/dev/null
-    exec ${warning[1]} >&- 2>/dev/null
-    exec ${info[1]} >&- 2>/dev/null
-    exec ${debug[1]} >&- 2>/dev/null
     test -v FIFO && rm -f $FIFO 2>/dev/null
 }
 trap cleanup EXIT
