@@ -175,12 +175,12 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         if ((match)); then
             info "matching file '$file'"
         else
-            exit 0 # continue
+            continue
         fi
     fi
     if test -z "$file"; then
         warning "ignoring empty file $file"
-        exit 0 # continue
+        continue
     fi
     # guess MIME type
     name="$(basename "$file")"
@@ -214,7 +214,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             group=OCR-D-SEG-ALTO
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit 0 #continue
+            continue
         else
             critical "unknown type of file '$file'"
             false
@@ -246,14 +246,14 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
                     add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
-                exit 0 # continue
+                continue
             else
                 file="${files[0]}"
                 file="${file#./}"
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit 0 # continue
+            continue
         else
             critical "unknown type of file '$file'"
             false
