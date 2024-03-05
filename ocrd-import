@@ -161,12 +161,13 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     for suffix in "${skip[@]}"; do
         if test "$file" != "${file%$suffix}"; then
             info "skipping file '$file'"
-            exit 0 # continue
+            continue
         fi
     done
     if ((${#regex[*]})); then
         match=0
         for expr in "${regex[@]}"; do
+            expr="${expr#$DIRECTORY}"
             if [[ "$file" =~ $expr ]]; then
                 match=1
                 break
