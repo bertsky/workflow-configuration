@@ -79,8 +79,12 @@ help:
 	@echo
 	@echo "  * LOGLEVEL: override global loglevel for all OCR-D processors"
 	@echo "    (if unset, then default/configured logging levels apply)"
-	@echo "  * PAGES: override pageId selection (comma-separated list)"
+	@echo "  * PAGES: override page selection (comma-separated list)"
 	@echo "    (if unset, then all pages will be processed)"
+	@echo "  * TIMEOUT: per-processor timeout (in seconds or with unit suffix)"
+	@echo "    (if unset, then processors may run forever)"
+	@echo "  * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors"
+	@echo "    (if unset, then failed processors terminate the workflow)"
 
 .PHONY: help info
 
@@ -147,12 +151,22 @@ ifneq ($(wildcard $(CURDIR)/mets.xml),)
 
 space = $() $()
 comma = ,
+ifdef FAILDUMMY
+define failrecipe =
+ocrd-dummy $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
+-I $(firstword $+) -O $@ --overwrite | tee -a $@.log
+endef
+else
+define failrecipe =
+{ $(if $(wildcard $@),touch -c -d "$(shell date -Ins -r $@)" $@,rm -fr $@); false; }
+endef
+endif
 define toolrecipe =
-	$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
-	-I $(subst $(space),$(comma),$+) -p $@.json \
-	-O $@ --overwrite $(OPTIONS) 2>&1 | tee $@.log && \
-	touch -c $@ || { \
-	$(if $(wildcard $@),touch -c -d "$(shell date -Ins -r $@)" $@,rm -fr $@); false; }
+$(and $(TIMEOUT),timeout $(TIMEOUT)) \
+$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
+-I $(subst $(space),$(comma),$+) -p $@.json \
+-O $@ --overwrite $(OPTIONS) 2>&1 | tee $@.log \
+|| $(failrecipe) && touch -c $@
 endef
 # Extra recipe to control allocation of GPU resources
 # (for processors explicitly configured as CUDA-enabled):
