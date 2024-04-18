@@ -24,6 +24,9 @@ PARALLEL=0
 JOBS=0
 LOAD=0
 ALL=0
+XFERHOST=
+XFERWORKDIR=
+XFERINIT=
 
 set -e
 
@@ -32,6 +35,15 @@ targets=()
 # consume all arguments, sift our own vs. make's
 while (($#)); do
     case "$1" in
+        -X|--transfer)
+            shift
+            XFERHOST=${1%:*}
+            XFERWORKDIR=${1#*:}
+            ;;
+        --remote-init)
+            shift
+            XFERINIT="$1"
+            ;;
         -f)
             shift
             WORKFLOW="$1"
@@ -98,6 +110,16 @@ Running OCR-D workflow configurations on multiple workspaces:
 
   Usage:
   ocrd-make [OPTIONS] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]
+
+  Options (ocrd-specific):
+  -X|--transfer HOST:DIR  run workflow on remote HOST in remote DIR
+  --remote-init CMD  run CMD before the workflow on remote host
+
+  Options (make-specific):
+  -j|--jobs [N]   number of jobs to run simultaneously
+  -l|--load-average|--max-load N  system load limit for -j without N
+  -I|--include-dir DIR  extra search directory for included makefiles
+  -C|--directory DIR  change to directory before reading makefiles
 
   Targets (general):
   * help (this message)
@@ -166,13 +188,19 @@ if ! test -e "$WORKFLOW"; then
     exit 1
 fi
 
-# include directory of workflow config itself,
-# in case it includes a local.mk or Makefile
-# and is not here
-CFGDIR="$(dirname "$WORKFLOW")"
+CFGDIR="$(realpath $(dirname "$WORKFLOW"))"
 CFGNAME="$(basename "${WORKFLOW%.mk}")"
-#  -I "$CFGDIR
-makeopts+=( -R -I "$SHAREDIR" -f "$WORKFLOW" )
+if  test -n "$XFERHOST"; then
+    # will be copied via to host via --bf relative to --wd
+    WORKFLOW="$CFGDIR/./${CFGNAME}.mk"
+    # sharedir will be added on host
+    makeopts+=( -f "$CFGNAME.mk" )
+else
+    # include directory of workflow config itself,
+    # in case it includes a local.mk or Makefile
+    # and is not here:  -I "$CFGDIR"
+    makeopts+=( -R -I "$SHAREDIR" -f "$WORKFLOW" )
+fi
 
 ((${#targets[*]})) || ALL=1
 if ((ALL)); then
@@ -219,17 +247,25 @@ if ((PARALLEL)); then
     #  defaults to never, which runs all jobs no matter what.
     ((LOAD)) && parallelopts+=(--load $LOAD)
     ((JOBS)) && parallelopts+=(--jobs $JOBS)
-    parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}" | {
-        while read dir log; do
-            echo $dir
-            cat $log >> ${dir%%/}.$CFGNAME.log
-            rm $log
-        done
-    }
+    if test -n "$XFERHOST"; then
+        parallelopts+=(-S "$XFERHOST" --transfer --return {} --bf "$WORKFLOW")
+        test -n "$XFERWORKDIR" && parallelopts+=(--wd "$XFERWORKDIR")
+        # we cannot just use `make`, since the installation on the remote host
+        # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
+        # also, we usually need to activate our venv for OCR-D on the remote,
+        # hence optional extra commands XFERINIT:
+        parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]}" {} "2>&1" ::: "${targets[@]}"
+    else
+        parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}"
+    fi | while read dir log; do
+        echo $dir
+        cat $log >> ${dir%%/}.$CFGNAME.log
+        rm $log
+    done
     echo $CFGNAME.$$.log
     exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
     for ((i=0; i<${#targets[*]}; i++)); do
-        ((${exitcodes[$i]}==0)) && echo -n "success:" || echo -n "failure:"
+        ((${exitcodes[$i]:-(-1)}==0)) && echo -n "success:" || echo -n "failure:"
         echo " ${targets[$i]}"
     done
 else
