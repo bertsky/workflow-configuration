@@ -134,12 +134,17 @@ Running OCR-D workflow configurations on multiple workspaces:
   Variables:
   * LOGLEVEL: override global loglevel for all OCR-D processors
     (if unset, then default/configured logging levels apply)
-  * PAGES: override pageId selection (comma-separated list)
+  * PAGES: override page selection (comma-separated list)
     (if unset, then all pages will be processed)
+  * TIMEOUT: per-processor timeout (in seconds or with unit suffix)
+    (if unset, then processors may run forever)
+  * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors
+    (if unset, then failed processors terminate the workflow)
 
 (This will merely delegate to \`make\` on the given working directories
-from the installation directory "$SHAREDIR". All options except -C and -I
-are allowed and passed through. Options -j and -l are intercepted.)
+from the installation directory "$SHAREDIR".
+All options except -C and -I are allowed and passed through.
+Options -j and -l are intercepted.)
 
 EOF
             exit
