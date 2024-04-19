@@ -26,14 +26,14 @@ INPUT = OCR-D-IMG
 $(INPUT):
 	ocrd workspace find -G $@ --download
 
-OUTPUT = OCR-D-OCR-TESS-ALL-FRAK2021
+OUTPUT = OCR-D-OCR-TESS
 $(OUTPUT): $(INPUT)
 $(OUTPUT): TOOL = ocrd-tesserocr-recognize
-$(OUTPUT): PARAMS = "segmentation_level": "region", "model": "frak2021+GT4HistOCR+frk+deu-frak+deu+Fraktur+Latin", "shrink_polygons": true #, "auto_model": true
+$(OUTPUT): PARAMS = "segmentation_level": "region", "model": "$(or $(MODEL),Fraktur+Latin)", "shrink_polygons": true #, "auto_model": true
 
 info:
 	@echo "This is a simple workflow with Tesseract segmentation+recognition"
-	@echo "from $(INPUT) to $(OUTPUT) with various Fraktur models"
+	@echo "from $(INPUT) to $(OUTPUT) with recognition model MODEL=$(MODEL)"
 
 .PHONY: info
 
