@@ -159,7 +159,7 @@ EOF
             ALL=1
             ;;
         info|show|server)
-            make -I $SHAREDIR -f $WORKFLOW $1
+            make "${makeopts[@]}" -I $SHAREDIR -f $WORKFLOW $1
             exit
             ;;
         *)
