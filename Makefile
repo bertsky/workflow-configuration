@@ -39,13 +39,15 @@ help:
 	@echo
 	@echo "  Targets:"
 	@echo "  * help        (this message)"
+	@echo "  * test        (run test suite)"
 	@echo "  * deps-ubuntu (install extra system packages needed here, beyond ocrd and processors)"
-	@echo "  * install     (copy 'ocrd-make' script and configuration makefiles to"
+	@echo "  * install     (copy $(SHPROGS) and configuration makefiles to"
 	@echo "  *              VIRTUAL_ENV=$(VIRTUAL_ENV)"
 	@echo "  *              from repository workdir)"
-	@echo "  * uninstall   (remove 'ocrd-make' script and configuration makefiles from"
+	@echo "  * uninstall   (remove $(SHPROGS) and configuration makefiles from"
 	@echo "  *              VIRTUAL_ENV=$(VIRTUAL_ENV))"
 	@echo "  * %.mk        (any filename with suffix .mk not existing yet: spawn new makefile from pattern)"
+	@echo "  * test        (run test suite)"
 	@echo
 	@echo "  Variables:"
 	@echo
@@ -80,8 +82,32 @@ uninstall:
 	$(RM) $(PROGS:%=$(BINDIR)/%)
 	$(RM) -r $(SHAREDIR)
 
+define testrecipe =
+function testfun { pushd `mktemp -d` && cp -pr $(abspath $^) . && /usr/bin/time ocrd-make -f all-tess-MODEL.mk MODEL=german_print $(^F) "$$@" && $(RM) -r $$DIRSTACK; }; testfun
+endef
+test: test/data1 test/data2
+	$(testrecipe)
+	$(testrecipe) -j2
+	$(testrecipe) -j2 METSSERV=1
+	$(testrecipe) -j2 METSSERV=1 PAGEWISE=1
+	$(testrecipe) METSSERV=1 PAGEWISE=1
+	$(testrecipe) METSSERV=1
+	$(testrecipe) TIMEOUT=4 FAILDUMMY=1
+	! { $(testrecipe) TIMEOUT=4; }
+# todo: test -X ...
 
-.PHONY: deps-ubuntu install install-bin uninstall
+test/data1:
+	wget -P $@ https://digital.slub-dresden.de/data/kitodo/Brsfded_39946221X-18560530/Brsfded_39946221X-18560530_tif/jpegs/000000{01..04}.tif.original.jpg
+	ocrd-import -P $@
+
+test/data2:
+	ocrd workspace -d $@ clone "https://digital.slub-dresden.de/oai/?verb=GetRecord&metadataPrefix=mets&identifier=oai:de:slub-dresden:db:id-39946221X-18560530"
+	ocrd workspace -d $@ find -G ORIGINAL -g PHYS_0001..PHYS_0004 --download
+	ocrd workspace -d $@ rename-group ORIGINAL OCR-D-IMG
+	ocrd workspace -d $@ prune-files
+
+
+.PHONY: deps-ubuntu install install-bin uninstall test
 
 # spawn a new configuration
 define skeleton =
