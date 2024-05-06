@@ -1,0 +1,45 @@
+version: 2.1
+jobs:
+
+  test:
+    docker:
+      - image: ocrd/tesserocr
+    environment:
+      PIP: pip3
+      PYTHON: python3
+    steps:
+      - run: apt-get update && apt-get install -y --no-install-recommends make wget unzip
+      - checkout
+      - run: make deps-ubuntu
+      - run: make install
+      - run: ocrd resmgr download -n
+          https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/german_print/tessdata_best/german_print_0.877_1254744_7309067.traineddata
+          ocrd-tesserocr-recognize german_print.traineddata
+      - run: make test |& tee test.log
+      - store_artifacts:
+          path: test.log
+
+  deploy-docker:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker: # https://circleci.com/docs/2.0/building-docker-images/
+          docker_layer_caching: true
+      - run: make docker
+      - run:
+          name: Login to Docker Hub
+          command: echo "$DOCKERHUB_PASS" | docker login --username "$DOCKERHUB_USER" --password-stdin
+      - run: docker push bertsky/workflow-configuration
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - test
+  deploy:
+    jobs:
+      - deploy-docker:
+          filters:
+            branches:
+              only: master
