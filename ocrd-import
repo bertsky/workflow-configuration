@@ -221,7 +221,10 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             false
         fi
         ;;
-        application/pdf|application/postscript|application/oxps|image/x-*|"")
+        image/tiff|image/jpeg|image/png)
+        # directly supported
+        ;;
+        *)
         case "$suffix" in
             .pdf|.PDF)
                 inopts=(-units PixelsPerInch -density $((2*$dpi)))
