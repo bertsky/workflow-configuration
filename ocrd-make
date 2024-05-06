@@ -21,6 +21,8 @@ SCRIPTDIR="$(dirname "$0")"
 SHAREDIR="$(cd $(dirname "$0") && pwd)"
 WORKFLOW=
 PARALLEL=0
+PAGEWISE=0
+METSSERV=0
 JOBS=0
 LOAD=0
 ALL=0
@@ -140,6 +142,10 @@ Running OCR-D workflow configurations on multiple workspaces:
     (if unset, then processors may run forever)
   * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors
     (if unset, then failed processors terminate the workflow)
+  * METSSERV   start/use/stop METS Servers before/during/after workflows
+    (if unset, the METS file will have to be de/serialised between each call)
+  * PAGEWISE   call processors separately per page during workflows
+    (if unset, processors are called on the whole document)
 
 (This will merely delegate to \`make\` on the given working directories
 from the installation directory "$SHAREDIR".
@@ -154,6 +160,7 @@ EOF
             ;;
         *=*)
             makeopts+=( "$1" )
+            eval ${1%=*}=${1#*=}
             ;;
         all)
             ALL=1
@@ -243,6 +250,11 @@ fi
 
 set +e
 
+if ((METSSERV && PAGEWISE)); then
+    # enable page-parallel rules in recursive make
+    export LOAD JOBS
+fi
+
 if ((PARALLEL)); then
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} in parallel"
     parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
@@ -255,11 +267,20 @@ if ((PARALLEL)); then
     if test -n "$XFERHOST"; then
         parallelopts+=(-S "$XFERHOST" --transfer --return {} --bf "$WORKFLOW")
         test -n "$XFERWORKDIR" && parallelopts+=(--wd "$XFERWORKDIR")
-        # we cannot just use `make`, since the installation on the remote host
+        # we cannot just use `make` directly, since the installation on the remote host
         # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
         # also, we usually need to activate our venv for OCR-D on the remote,
         # hence optional extra commands XFERINIT:
         parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]}" {} "2>&1" ::: "${targets[@]}"
+    elif ((METSSERV)); then
+        parallel "${parallelopts[@]}" \
+                 ocrd workspace -d {} -U {}/mets.sock server start "2>&1" "&" \
+                 'sleep 2;' \
+                 make "${makeopts[@]}" METS_SOCKET=mets.sock -C {} "2>&1" \
+                 ';result=$?;' \
+                 ocrd workspace -d {} -U {}/mets.sock server stop "2>&1" \
+                 ';exit $result' \
+                 ::: "${targets[@]}"
     else
         parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}"
     fi | while read dir log; do
@@ -277,7 +298,14 @@ else
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} serially"
     exitcodes=()
     for target in "${targets[@]}"; do
-        make "${makeopts[@]}" -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+        if ((METSSERV)); then
+            ocrd workspace -d "$target" -U "$target"/mets.sock server start 2>&1 | tee -a "$target.$CFGNAME.log" &
+            sleep 2
+            make "${makeopts[@]}" METS_SOCKET=mets.sock -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+            ocrd workspace -d "$target" -U "$target"/mets.sock server stop | tee -a "$target.$CFGNAME.log" 2>&1
+        else
+            make "${makeopts[@]}" -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+        fi
         exitcodes+=( $? )
         ((${exitcodes[-1]}==0)) && echo -n "success:" || echo -n "failure:"
         echo " $target"
