@@ -1,3 +1,5 @@
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/bertsky/workflow-configuration/tree/master.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/bertsky/workflow-configuration/tree/master)
+
 ## OCR-D workflow configurations based on makefiles
 
 This provides an attempt at running [OCR-D](https://ocr-d.de) workflows configured and controlled via makefiles using [GNU bash](http://www.gnu.org/software/bash), [GNU make](http://www.gnu.org/software/make/) and [GNU parallel](http://www.gnu.org/software/parallel).
@@ -22,16 +24,23 @@ Nevertheless, there are also some _disadvantages_:
 Contents:
  * [Dependencies](#dependencies)
  * [Installation](#installation)
-    * [For direct invocation of make](#for-direct-invocation-of-make)
-    * [For invocation via shell script](#for-invocation-via-shell-script)
+ * [Docker Image](#docker-image)
  * [Usage](#usage)
     * [ocrd-import](#ocrd-import)
     * [PAGE transformations and ocrd-page-transform](#ocrd-page-transform)
     * [METS transformations](#mets-transformations)
     * [ocrd-make](#ocrd-make)
+      * [LOGLEVEL](#loglevel)
+      * [PAGES](#pages)
+      * [TIMEOUT](#timeout)
+      * [FAILDUMMY](#faildummy)
+      * [METSSERV](#metsserv)
+      * [PAGEWISE](#pagewise)
+      * [Remote distribution](#remote-distribution)
  * [Customisation](#customisation)
     * [Recommendations](#recommendations)
     * [Example](#example)
+ * [Testing](#testing)
  * [Results](#results)
     * [OCR-D ground truth](#ocr-d-ground-truth)
  * [Implementation](#implementation)
@@ -89,6 +98,14 @@ Calling workflows is possible from anywhere in your filesystem, but for the `WOR
 
 (The previous version of `ocrd-make` tried to copy or symlink all makefiles to the runtime directory. You can still use those, but should remove the old `Makefile`.)
 
+### Docker Image
+
+Instead of the above native installation steps, you can use the prebuilt image from Docker Hub:
+
+    docker pull bertsky/workflow-configuration
+    docker run -V /path/to/data:/data bertsky/workflow-configuration ocrd-make ...
+
+For general guidance on using Docker with OCR-D, see [User Guide](https://ocr-d.de/en/user_guide#translating-native-commands-to-docker-calls).
 
 ### Usage
 
@@ -328,6 +345,55 @@ To run a configuration...
 
         ocrd-make -f WORKFLOW-CONFIG.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 
+<details><summary>Full CLI summary</summary>
+
+ <pre>
+Running OCR-D workflow configurations on multiple workspaces:
+
+  Usage:
+  ocrd-make [OPTIONS] [-f CONFIGURATION] [TARGETS] [VARIABLE-ASSIGNMENTS]
+
+  Options (ocrd-specific):
+  -X|--transfer HOST:DIR  run workflow on remote HOST in remote DIR
+  --remote-init CMD  run CMD before the workflow on remote host
+
+  Options (make-specific):
+  -j|--jobs [N]   number of jobs to run simultaneously
+  -l|--load-average|--max-load N  system load limit for -j without N
+  -I|--include-dir DIR  extra search directory for included makefiles
+  -C|--directory DIR  change to directory before reading makefiles
+
+  Targets (general):
+  * help (this message)
+  * info (short self-description of the selected configuration)
+  * show (print command sequence that would be executed for the selected configuration)
+  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')
+
+  Targets (data processing):
+  * all (recursively find all directories with a mets.xml, default goal)
+  * % (name of the workspace directory, overriding the default goal)
+
+  Variables:
+  * LOGLEVEL: override global loglevel for all OCR-D processors
+    (if unset, then default/configured logging levels apply)
+  * PAGES: override page selection (comma-separated list)
+    (if unset, then all pages will be processed)
+  * TIMEOUT: per-processor timeout (in seconds or with unit suffix)
+    (if unset, then processors may run forever)
+  * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors
+    (if unset, then failed processors terminate the workflow)
+  * METSSERV   start/use/stop METS Servers before/during/after workflows
+    (if unset, the METS file will have to be de/serialised between each call)
+  * PAGEWISE   call processors separately per page during workflows
+    (if unset, processors are called on the whole document)
+
+(This will merely delegate to `make` on the given working directories
+from the installation directory "/data/ocr-d/ocrd_all/venv38/share/workflow-configuration".
+All options except -C and -I are allowed and passed through.
+Options -j and -l are intercepted.)
+ </pre>
+
+ </details>
 
 To get help:
 
@@ -350,7 +416,7 @@ To run a workflow server for the command sequence that would be executed for the
 
 To spawn a new configuration file, in the directory of the source repository, do:
 
-    make NEW-CONFIGURATION.mk
+    ocrd-make NEW-CONFIGURATION.mk
 
 
 Furthermore, you can add any options that `make` understands (see `make --help` or `info make 'Options Summary'`). For example,
@@ -376,15 +442,88 @@ If you run `make` in the workspace directly instead of having `ocrd-make` do it 
     make -C WORKSPACE -f CONFIGURATION.mk -W OCR-D-BIN
     make -C WORKSPACE -f CONFIGURATION.mk OCR-D-SEG-LINE
 
-There are 2 special variables. To process only a subset of pages in all fileGrps, use `PAGES`. For example, to only consider pages `PHYS_0005` through `PHYS_0007`, do:
+There are 6 **special variables** and 1 **additional option**:
+
+##### LOGLEVEL
+
+To override the default (or configured) log levels for all processors and libraries, use `LOGLEVEL`. For example, to get debugging everywhere, do:
+
+    ocrd-make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
+    make -C WORKSPACE -f CONFIGURATION.mk LOGLEVEL=DEBUG
+
+##### PAGES
+
+To process only a subset of pages in all fileGrps, set `PAGES`. For example, to only consider pages `PHYS_0005` through `PHYS_0007`, do:
 
     ocrd-make -f CONFIGURATION.mk all PAGES=PHYS_0005..PHYS_0007
     make -C WORKSPACE -f CONFIGURATION.mk PAGES=PHYS_0005..PHYS_0007
 
-And to override the default (or configured) log levels for all processors and libraries, use `LOGLEVEL`. For example, to get debugging everywhere, do:
+The variable gets interpreted as the usual [--page-id parameter](https://ocr-d.de/en/spec/cli#-g---page-id-id) by processors, so it supports
+range expressions, comma-separated lists and regular expressions. 
 
-    ocrd-make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
-    make -C WORKSPACE -f CONFIGURATION.mk LOGLEVEL=DEBUG
+If the METS provides physical page labels (`@ORDER` or `@ORDERLABEL`), then these work as well:
+
+    ocrd-make -f CONFIGURATION.mk all PAGES=5..7
+    make -C WORKSPACE -f CONFIGURATION.mk PAGES=5..7
+
+##### TIMEOUT
+
+To set an upper limit on the time each processor may take to run, use `TIMEOUT`.
+Set a numeric value in seconds, or post-fix with a temporal unit, as in `timeout(1)`.
+
+Beware that useful values may vary widely, depending on the processor and parameters
+(esp. whether GPUs are used), the input image size, and any `PAGES` setting.
+
+In the case of `PAGEWISE=1`, this applies to single-page calls.
+
+If `FAILDUMMY=1`, then timed out calls (as with any other cause of failure)
+will be caught be `ocrd-dummy`, which may take up additional time.
+
+##### FAILDUMMY
+
+To handle errors gracefully, set `FAILDUMMY=1`. This will run a `ocrd-dummy` on the respective file groups and pages,
+which effectively copies the input to the output annotation (so subsequent steps can continue on these pages).
+
+Without this, a failed step causes the workflow to stop for that target workspace, 
+removing output pages already processed successfully (unless `PAGEWISE=1`).
+
+##### METSSERV
+
+To use METS Servers for each workspace, set `METSSERV=1`. On each workspace, this will
+- start a METS Server in the background, using local Unix Domain Socket `mets.sock`, then
+- run the workflow, having processors communicate via the socket, and finally
+- stop the METS Server.
+
+The METS Server avoids the cost of de/serialisation of the METS between processor calls,
+and thus increases efficiency. It also allows calling processors for pages independently
+(because the server synchronises METS updates, which the filesystem `mets.xml` cannot).
+
+So a very useful combination is `METSSERV=1 PAGEWISE=1`. (In that combination, the top-level
+number of jobs, `-j`, and load-level, `-l`, will also be distributed to the page-wise calls;
+see below).
+
+##### PAGEWISE
+
+To run processors on each page individually, set `PAGEWISE=1`. For each workflow step that needs an update,
+this will call `make` recursively with `PAGES` set to each single page ID. (The top-level `PAGES`
+setting is still respected, i.e. it only splits up the requested pages.)
+
+This is most useful in combination with `FAILDUMMY=1` (for per-page error handling) and `METSSERV=1`
+(for parallel distribution).
+
+##### Remote distribution
+
+To run jobs on another machine (which has ocrd-make and the respecive OCR-D processors installed),
+transferring the workflow configuration file and workspace directories prior to execution, and 
+the results afterwards, use `-X` or `--transfer`. 
+
+It takes as argument the remote host name and remote working directory, separated by a colon. In case
+the installation on the remote side needs initialization after login, use `--remote-init` followed by
+the respective command.
+
+Example:
+
+    ocrd-make -j 4 --remote-init ". ~/.bash_profile" -X user@host.domain:/local -f CONFIGURATION.mk all
 
 
 ### Customisation
@@ -448,6 +587,15 @@ EVAL: TOOL = ocrd-cor-asv-ann-evaluate
 # ALWAYS necessary:
 include Makefile
 ```
+
+### Testing
+
+To run `ocrd-import` and `ocrd-make` (in various modes) on sample data, 
+in the installation directory do:
+
+    make test
+
+This is also used by the CI.
 
 ### Results
 
@@ -556,6 +704,8 @@ Rules that are not configuration-specific (like the static pattern rule) are all
 `make` always operates on the level of the workspace directory (i.e. only one at a time), where targets are fileGrps and the default goal is the maximum fileGrp.
 
 For running entire collections of workspaces (possibly in parallel), recursive `make` has been abandoned in favour of the `parallel`-based `bash` script `ocrd-make`. Its command-line interface _looks_ like `make`, but the targets are workspaces and the default goal is `all` (which recursively `find`s all workspaces).
+
+:construction: we should explain the use of GNU `parallel` here.
 
 #### GPU vs CPU parallelism
 
