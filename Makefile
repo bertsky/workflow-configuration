@@ -106,8 +106,14 @@ test/data2:
 	ocrd workspace -d $@ rename-group ORIGINAL OCR-D-IMG
 	ocrd workspace -d $@ prune-files
 
+TAG ?= bertsky/workflow-configuration
+docker:
+	docker build \
+	-t $(TAG) \
+	--build-arg VCS_REF=$(git rev-parse --short HEAD) \
+	--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") .
 
-.PHONY: deps-ubuntu install install-bin uninstall test
+.PHONY: deps-ubuntu install install-bin uninstall test docker
 
 # spawn a new configuration
 define skeleton =
