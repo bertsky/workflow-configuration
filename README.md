@@ -103,6 +103,29 @@ To get help for the import tool:
 
     ocrd-import --help
 
+<details><summary>standalone CLI</summary>
+
+
+<pre>
+Usage: ocrd-import [OPTIONS] [DIRECTORY]
+
+with options:
+ -i|--ignore      keep going after unknown file types
+ -s|--skip SUFFIX ignore file names ending in given SUFFIX (repeatable)
+ -R|--regex EXPR  only include paths matching given EXPR (repeatable)
+ -C|--no-convert  do not attempt to convert image file types
+ -r|--render DPI  when converting PDFs, render at DPI pixel density
+ -P|--nonnum-ids  do not use numeric pageIds but basename patterns
+ -B|--basename    only use basename for IDs
+
+Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or /home/xbert/unsortiert/arbeit/heyer/tools/ocrd_tesserocr), importing...
+* all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
+* all .xml files (if they validate as PAGE-XML) under fileGrp OCR-D-SEG-PAGE
+...but failing otherwise.
+</pre>
+
+</details>
+
 #### ocrd-page-transform
 
 To perform various tasks via XSLT on PAGE-XML files (these all share the same options, including `--help`):
@@ -111,6 +134,8 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-rm-nsprefix-pc # removes namespace prefix 'pc:'
     page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
     page-fix-coords # replace negative values in coordinates by zero
+    page-flatten-tableregions # move recursive TableRegion cells to top level for editing in LAREX
+    page-unflatten-tableregions # move flattened TableRegion cells back to hierarchy after editing in LAREX
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-remove-alternativeimages # remove $which [last] AlternativeImage entries at hierarchy $level [page]
     page-remove-metadataitem # remove all MetadataItem entries
@@ -122,7 +147,10 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-lines # remove all TextLine (and Word and Glyph) entries
     page-remove-words # remove all Word (and Glyph) entries
     page-remove-glyphs # remove all Glyph entries
+    page-remove-textequiv # remove all TextEquiv entries for selected levels and @index
+    page-rename-id-clashes # reassign new @id of segments that clash with other existing @id
     page-ensure-readingorder # generate ReadingOrder hierarchy from recursive document order if empty
+    page-ensure-textequiv-conf # set TextEquiv/@conf attributes if missing
     page-ensure-textequiv-index # set TextEquiv/@index attributes from element order
     page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements if empty
     page-sort-textequiv-index # sort TextEquiv by @index

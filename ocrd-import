@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
 
-function critical { ocrd log -n ocrd-import critical "$1"; }
-function error { ocrd log -n ocrd-import error "$1"; }
-function warning { ocrd log -n ocrd-import warning "$1"; }
-function info { ocrd log -n ocrd-import info "$1"; }
-function debug { ocrd log -n ocrd-import debug "$1"; }
+function cleanup {
+    set +e
+    test -v FIFO && rm -f $FIFO 2>/dev/null
+}
+trap cleanup EXIT
+
+# FIXME: bash says under BUGS "There may be only one active coprocess at a time." which causes spurious warnings here.
+# (We therefore temporarily silence stderr to silence the execute_coproc warnings.)
+exec 4>&2
+{
+coproc critical { ocrd log -n ocrd-import critical - >& 4 2>& 4; }
+coproc error { ocrd log -n ocrd-import error - >& 4 2>& 4; }
+coproc warning { ocrd log -n ocrd-import warning - >& 4 2>& 4; }
+coproc info { ocrd log -n ocrd-import info - >& 4 2>& 4; }
+coproc debug { ocrd log -n ocrd-import debug - >& 4 2>& 4; }
+} 2>/dev/null
+
+function critical { echo "$1" >& ${critical[1]}; }
+function error { echo "$1" >& ${error[1]}; }
+function warning { echo "$1" >& ${warning[1]}; }
+function info { echo "$1" >& ${info[1]}; }
+function debug { echo "$1" >& ${debug[1]}; }
 
 ((BASH_VERSINFO<4 || BASH_VERSINFO==4 && BASH_VERSINFO[1]<4)) && critical "bash $BASH_VERSION is too old. Please install 4.4 or newer" && exit 2
 
 ignore=0
-njobs=1
 skip=()
 regex=()
 convert=1
 dpi=300
 numpageid=1
+onlybasename=0
 while (($#)); do
     case "${1:--h}" in
         -h|-[-]help)
@@ -23,12 +40,12 @@ Usage: $(basename $0) [OPTIONS] [DIRECTORY]
 
 with options:
  -i|--ignore      keep going after unknown file types
- -j|--jobs NJOBS  run pages by NJOBS jobs in parallel
  -s|--skip SUFFIX ignore file names ending in given SUFFIX (repeatable)
  -R|--regex EXPR  only include paths matching given EXPR (repeatable)
  -C|--no-convert  do not attempt to convert image file types
  -r|--render DPI  when converting PDFs, render at DPI pixel density
  -P|--nonnum-ids  do not use numeric pageIds but basename patterns
+ -B|--basename    only use basename for IDs
 
 Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or $PWD), importing...
 * all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
@@ -41,9 +58,9 @@ EOF
             ignore=1
             shift
             ;;
+        # keep just for backwards compatibility:
         -j|--jobs)
             shift
-            njobs=$1
             shift
             ;;
         -s|--skip)
@@ -71,6 +88,10 @@ EOF
             ;;
         -P|--nonnum-ids)
             numpageid=0
+            shift
+            ;;
+        -B|--basename)
+            onlybasename=1
             shift
             ;;
         *)
@@ -108,29 +129,20 @@ mkfifo $FIFO
 
 # trap to back-off from mets.xml and subdir in case of failure:
 function backout {
-    kill $PID_BULKADD
-    wait &>/dev/null
+    set +e
+    critical "Cancelled '$DIRECTORY'"
     exec 3>&-
-    rm -f $FIFO
+    test -v PID_BULKADD && kill $PID_BULKADD
     rm -f mets.xml
     rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE 2>/dev/null
     popd > /dev/null
-    critical "Cancelled '$DIRECTORY'"
     exit 1
 }
-trap backout ERR
-# trap to receive cancel signal from subshell:
-function cancel {
-    njobs=0
-}
-trap cancel HUP
-# trap to signal failure to parent from subshell:
-function rollback {
-    kill -HUP $PID_TOP
-}
+trap backout ERR INT
 
+info "analysing '$DIRECTORY'"
 pushd "$DIRECTORY" > /dev/null
-ocrd workspace init
+ocrd workspace init > /dev/null
 ocrd workspace bulk-add -r '(?P<grp>[^ ]+) (?P<mime>[^ ]+) (?P<page>[^ ]+) (?P<file>[^ ]+) (?P<src>.*)' \
      -G '{{ grp }}' -m '{{ mime }}' -g '{{ page }}' -i '{{ file }}' -S '{{ src }}' - <$FIFO &
 
@@ -143,25 +155,19 @@ IFS=$'\n'
 for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); do
     IFS=$' \t\n'
     let num++ || true
-    ((njobs))
-    if (($(jobs -p | wc -l) > $njobs)); then
-        wait -n # first wait for next subshell (from other iteration) to finish
-    fi
-    (
-    set -e
-    trap rollback ERR
     page=p${zeros:0:$((4-${#num}))}$num
     group=OCR-D-IMG
     file="${file#./}"
     for suffix in "${skip[@]}"; do
         if test "$file" != "${file%$suffix}"; then
             info "skipping file '$file'"
-            exit 0 # continue
+            continue
         fi
     done
     if ((${#regex[*]})); then
         match=0
         for expr in "${regex[@]}"; do
+            expr="${expr#$DIRECTORY}"
             if [[ "$file" =~ $expr ]]; then
                 match=1
                 break
@@ -170,17 +176,23 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         if ((match)); then
             info "matching file '$file'"
         else
-            exit 0 # continue
+            continue
         fi
     fi
     if test -z "$file"; then
         warning "ignoring empty file $file"
-        exit 0 # continue
+        continue
     fi
     # guess MIME type
     name="$(basename "$file")"
     suffix=."${name##*.}"
+    mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
+    # create ID from path
     base="${name%$suffix}"
+    name="$(dirname "${file#./}")"
+    if test "$name" != . && ! ((onlybasename)); then
+        base="${name//\//_}_$base"
+    fi
     # XSD ID must start with letter and not contain colons or spaces
     # also, avoid . in IDs, because downstream it will confuse filename suffix detection
     base="${base//[ :.,]/_}"
@@ -189,11 +201,7 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
     fi
     if ! ((numpageid)); then
         page=$base
-        # file IDs must contain group and page ID, or processors will have to
-        # prevent ID clashes by using numeric IDs
-        base=${group}_"$base"
     fi
-    mimetype=${MIMETYPES[${suffix,,[A-Z]}]}
     #debug "found file '$file' (base=$base page=$page mimetype=$mimetype)"
     case "$mimetype" in
         ${MIMETYPE_PAGE})
@@ -201,19 +209,13 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         if fgrep -q http://schema.primaresearch.org/PAGE/gts/pagecontent/ "$file" \
                 && fgrep -qw 'PcGts' "$file"; then
             group=OCR-D-SEG-PAGE
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
         elif fgrep -q http://www.loc.gov/standards/alto/ "$file" \
                 && fgrep -qw alto "$file"; then
             mimetype=application/alto+xml
             group=OCR-D-SEG-ALTO
-            if ! ((numpageid)); then
-                base=${base/OCR-D-IMG/$group}
-            fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit 0 #continue
+            continue
         else
             critical "unknown type of file '$file'"
             false
@@ -240,60 +242,43 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
             info "converted '$file' to 'OCR-D-IMG/${base}_*.tif' (${#files[*]} files)"
             if ((${#files[*]}>1)); then
                 for file in "${files[@]}"; do
-                    file="${file#./}"
+                    file="${file#OCR-D-IMG/}"
                     base="${file%.tif}"
-                    base="${base#OCR-D-IMG/}"
                     add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
-                exit 0 # continue
+                continue
             else
                 file="${files[0]}"
                 file="${file#./}"
             fi
         elif (($ignore)); then
             warning "unknown type of file '$file'"
-            exit 0 # continue
+            continue
         else
             critical "unknown type of file '$file'"
             false
         fi
         ;;
     esac
-    IFS=$'\n'
-    clashes=($(ocrd workspace find -i "$base" -k local_filename -k mimetype -k pageId))
-    IFS=$' \t\n'
-    n=0
-    for clash in "${clashes[@]}"; do
-        let n++ || true
-        IFS=$'\t'
-        fields=($clash)
-        IFS=$' \t\n'
-        # if image, allow PAGE with matching basename
-        # if PAGE, allow image with matching basename
-        if if test $group = OCR-D-IMG; then
-               test "x${fields[1]}" = x${MIMETYPE_PAGE}
-           else [[ "${fields[1]}" =~ image/ ]]
-           fi; then
-            # use existing pageId
-            page=${fields[2]}
-            # use new file ID
-            base="$(basename "$file")" # (including suffix)
-            base="${base// /_}"
-        else
-            warning "files '$file' ($mimetype) and '${fields[0]}' (${fields[1]}) have the same basename"
-        fi
-    done
+    # file IDs must contain fileGrp, otherwise processors will have to prevent
+    # ID clashes by using numeric IDs
+    if [[ "$base" != $group* ]]; then
+        base=${group}_"$base"
+    fi
     # finally, add the file to the METS
     add_file $group $mimetype $page "$base" "$file"
-    )&
 done
+
+# undo backout trap
+trap "" ERR
+# finish bulk-add
 exec 3>&-
-rm -f $FIFO
+wait $PID_BULKADD
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
-wait -n
 popd > /dev/null
 
 info "Success on '$DIRECTORY'"
+
