@@ -163,7 +163,10 @@ endef
 endif
 define toolrecipe =
 $(and $(TIMEOUT),timeout $(TIMEOUT)) \
-$(TOOL) $(and $(LOGLEVEL),-l $(LOGLEVEL)) $(and $(PAGES),-g $(PAGES)) \
+$(TOOL) \
+$(and $(LOGLEVEL),-l $(LOGLEVEL)) \
+$(and $(PAGES),-g $(PAGES)) \
+$(and $(METS_SOCKET),-U $(METS_SOCKET)) \
 -I $(subst $(space),$(comma),$+) -p $@.json \
 -O $@ --overwrite $(OPTIONS) 2>&1 | tee $@.log \
 || $(failrecipe) && touch -c $@
@@ -193,6 +196,7 @@ $(warning You risk running into GPU races. Install GNU parallel to synchronize C
 endif
 endif
 
+
 %: TOOL =
 %: GPU =
 %: PARAMS =
@@ -202,17 +206,37 @@ ifeq ($(MAKECMDGOALS),show)
 override MAKEFLAGS = n
 %:
 	$(if $(and $(TOOL),$<),$(info '$(TOOL) -I $(subst $(space),$(comma),$+) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)'))
+else ifeq ($(PAGEWISE),1)
+# page-wise: determine list of pages and split up into pseudo-targets
+PAGE_RANGE = $(shell ocrd workspace find $(and $(PAGES),-g $(PAGES)) -k page_id)
+%:
+	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" $(and $(PAGEWISE),page-wise) with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
+	$(file > $@.json, { $(PARAMS) })
+	$(MAKE) $(foreach PAGE,$(PAGE_RANGE),PAGE/$(PAGE)) -f $(CONFIGURATION) -I $(CONFIGDIR) PAGEWISE=2 TARGET=$@ PREREQ=$< $(and $(JOBS),-j $(filter-out 0,$(JOBS))) $(and $(LOAD),-l $(filter-out 0,$(LOAD)))
+else ifeq ($(PAGEWISE),2)
+# page-wise: run make on single page
+# (--assume-new on input fileGrp, since we already established in stage 1 that the target needs updating,
+#  otherwise, the output fileGrp would be considered complete after the first page)
+PAGE/%:
+	$(MAKE) $(TARGET) -W $(PREREQ) -f $(CONFIGURATION) -I $(CONFIGDIR) PAGEWISE=3 PAGES=$(*F)
+else ifeq ($(PAGEWISE),3)
+# page-wise: processor recipe
+%:
+	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 else
+# document-wise (internal page loop)
 %:
 	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
 	$(if $(GPU),$(gputoolrecipe),$(toolrecipe))
 endif
 
+ifndef METS_SOCKET
 # prevent parallel execution of recipes within one workspace
-# (because that would require FS synchronization on the METS,
-# and would make multi-output recipes harder to write):
+# (because that would require FS synchronization on the METS):
 .NOTPARALLEL:
+endif
+
 else # (if not inside workspace)
 ifeq ($(filter help info show server,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)", and no generic goals among "$(MAKECMDGOALS)")
