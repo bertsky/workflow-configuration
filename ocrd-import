@@ -2,7 +2,7 @@
 
 function cleanup {
     set +e
-    test -v FIFO && rm -f $FIFO 2>/dev/null
+    rm -f mets.sock 2>/dev/null
 }
 trap cleanup EXIT
 
@@ -102,12 +102,6 @@ done
 
 (($#>1)) && warning "non-first argument(s) will be ignored: '${@:2}'"
 
-function add_file {
-    info "adding -g $3 -G $1 -m $2 -i $4 '$5'"
-    # will be picked up by bulk-add below
-    echo $1 $2 $3 $4 $5 >&3
-}
-
 set -eE
 declare -A MIMETYPES
 eval MIMETYPES=( $(ocrd bashlib constants EXT_TO_MIME) )
@@ -124,15 +118,12 @@ if test -f "$DIRECTORY"/mets.xml || test -d "$DIRECTORY"/data -a -f "$DIRECTORY"
     false
 fi
 
-FIFO=$(mktemp -u)
-mkfifo $FIFO
-
 # trap to back-off from mets.xml and subdir in case of failure:
 function backout {
     set +e
     critical "Cancelled '$DIRECTORY'"
-    exec 3>&-
-    test -v PID_BULKADD && kill $PID_BULKADD
+    ocrd workspace -U mets.sock server stop
+    test -v PID_SERVER && kill $PID_SERVER &>/dev/null
     rm -f mets.xml
     rmdir --ignore-fail-on-non-empty OCR-D-IMG OCR-D-SEG-PAGE 2>/dev/null
     popd > /dev/null
@@ -143,12 +134,12 @@ trap backout ERR INT
 info "analysing '$DIRECTORY'"
 pushd "$DIRECTORY" > /dev/null
 ocrd workspace init > /dev/null
-ocrd workspace bulk-add -r '(?P<grp>[^ ]+) (?P<mime>[^ ]+) (?P<page>[^ ]+) (?P<file>[^ ]+) (?P<src>.*)' \
-     -G '{{ grp }}' -m '{{ mime }}' -g '{{ page }}' -i '{{ file }}' -S '{{ src }}' - <$FIFO &
+ocrd workspace -U mets.sock server start > /dev/null &
 
-PID_BULKADD=$!
+PID_SERVER=$!
 PID_TOP=$$
-exec 3>$FIFO
+
+sleep 1 # wait for server to become available
 
 num=0 zeros=0000
 IFS=$'\n'
@@ -247,7 +238,8 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
                 for file in "${files[@]}"; do
                     file="${file#OCR-D-IMG/}"
                     base="${file%.tif}"
-                    add_file $group $mimetype ${page}_${base:(-4)} "$base" "$file"
+                    info "adding -g ${page}_${base:(-4)} -G $group -m $mimetype -i $base '$file'"
+                    ocrd workspace -U mets.sock add -G $group -m $mimetype -g ${page}_${base:(-4)} -i "$base" "$file"
                 done
                 # there's no danger of clashes with other files here
                 continue
@@ -270,14 +262,15 @@ for file in $(find -L . -type f -not -name mets.xml -not -name "*.log" | sort); 
         base=${group}_"$base"
     fi
     # finally, add the file to the METS
-    add_file $group $mimetype $page "$base" "$file"
+    info "adding -g $page -G $group -m $mimetype -i $base '$file'"
+    ocrd workspace -U mets.sock add -G $group -m $mimetype -g $page -i "$base" "$file"
 done
 
 # undo backout trap
 trap "" ERR
-# finish bulk-add
-exec 3>&-
-wait $PID_BULKADD
+# persist METS
+ocrd workspace -U mets.sock server stop
+wait $PID_SERVER
 # ensure these exist in the file system, too
 # (useful for ocrd-make)
 mkdir -p OCR-D-IMG OCR-D-SEG-PAGE
