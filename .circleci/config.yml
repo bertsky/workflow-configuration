@@ -15,6 +15,7 @@ jobs:
       - run: ocrd resmgr download -n
           https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/german_print/tessdata_best/german_print_0.877_1254744_7309067.traineddata
           ocrd-tesserocr-recognize german_print.traineddata
+      - run: sed -e s/level=INFO/level=WARN/ -e s/level=DEBUG/level=WARN/ -i /etc/ocrd_logging.conf
       - run: make test |& tee test.log
       - store_artifacts:
           path: test.log
