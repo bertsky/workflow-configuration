@@ -252,23 +252,31 @@ fi
 
 set +e
 
+parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
+
 if ((METSSERV && PAGEWISE)); then
-    # enable page-parallel rules in recursive make
-    export LOAD JOBS
+    # enable page-parallel rules in recursive make (workflow.mk)
+    ((LOAD)) && makeopts+=(LOAD=$LOAD)
+    ((JOBS)) && makeopts+=(JOBS=$JOBS)
+    # disable document-parallel behaviour to avoid oversubscription
+    #PARALLEL=0
+    LOAD=0
+    JOBS=0
+else
+    # enable document-parallel options here
+    ((LOAD)) && parallelopts+=(--load $LOAD)
+    ((JOBS)) && parallelopts+=(--jobs $JOBS)
 fi
 
 if ((PARALLEL)); then
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} in parallel"
-    parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
     # 
     # --halt soon,fail=3    exit when 3 jobs fail, but wait for running jobs to complete.
     # --halt soon,fail=3%   exit when 3% of the jobs have failed, but wait for running jobs to complete.
     #  defaults to never, which runs all jobs no matter what.
-    ((LOAD)) && parallelopts+=(--load $LOAD)
-    ((JOBS)) && parallelopts+=(--jobs $JOBS)
-    if test -n "$XFERHOST"; then
-        parallelopts+=(-S "$XFERHOST" --transfer --return {} --bf "$WORKFLOW")
-        test -n "$XFERWORKDIR" && parallelopts+=(--wd "$XFERWORKDIR")
+    if [[ -n "$XFERHOST" ]]; then
+        parallelopts+=(-S "$XFERHOST" --transfer --return {} --cleanup --bf "$WORKFLOW")
+        [[ -n "$XFERWORKDIR" ]] && parallelopts+=(--wd "$XFERWORKDIR")
         # we cannot just use `make` directly, since the installation on the remote host
         # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
         # also, we usually need to activate our venv for OCR-D on the remote,
