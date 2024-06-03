@@ -33,6 +33,7 @@ Contents:
       * [LOGLEVEL](#loglevel)
       * [PAGES](#pages)
       * [TIMEOUT](#timeout)
+      * [FAILRETRY](#failretry)
       * [FAILDUMMY](#faildummy)
       * [METSSERV](#metsserv)
       * [PAGEWISE](#pagewise)
@@ -380,6 +381,8 @@ Running OCR-D workflow configurations on multiple workspaces:
     (if unset, then all pages will be processed)
   * TIMEOUT: per-processor timeout (in seconds or with unit suffix)
     (if unset, then processors may run forever)
+  * FAILRETRY: per-processor number of attempts on processing errors
+    (if unset, then the first attempt exits, passing the error on)
   * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors
     (if unset, then failed processors terminate the workflow)
   * METSSERV   start/use/stop METS Servers before/during/after workflows
@@ -476,15 +479,26 @@ Beware that useful values may vary widely, depending on the processor and parame
 
 In the case of `PAGEWISE=1`, this applies to single-page calls.
 
+If `FAILRETRY>0`, then repeated attempts will each contribute to one overall timeout.
+
 If `FAILDUMMY=1`, then timed out calls (as with any other cause of failure)
 will be caught be `ocrd-dummy`, which may take up additional time.
+
+##### FAILRETRY
+
+To try recovering from transient errors (like OOM or network disruption), set `FAILRETRY`
+to the number of attempts you want processors to make.
+
+Without this, a failed step causes falling back to `ocrd-dummy` (if `FAILDUMMY=1`) or
+the workflow to stop (otherwise) for that target workspace,
+removing output pages already processed successfully (unless `PAGEWISE=1`).
 
 ##### FAILDUMMY
 
 To handle errors gracefully, set `FAILDUMMY=1`. This will run a `ocrd-dummy` on the respective file groups and pages,
 which effectively copies the input to the output annotation (so subsequent steps can continue on these pages).
 
-Without this, a failed step causes the workflow to stop for that target workspace, 
+Without this, a failed step causes the workflow to stop for that target workspace,
 removing output pages already processed successfully (unless `PAGEWISE=1`).
 
 ##### METSSERV

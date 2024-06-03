@@ -140,6 +140,8 @@ Running OCR-D workflow configurations on multiple workspaces:
     (if unset, then all pages will be processed)
   * TIMEOUT: per-processor timeout (in seconds or with unit suffix)
     (if unset, then processors may run forever)
+  * FAILRETRY: per-processor number of attempts on processing errors
+    (if unset, then the first attempt exits, passing the error on)
   * FAILDUMMY: use ocrd-dummy (just copy -I to -O grp) on processing errors
     (if unset, then failed processors terminate the workflow)
   * METSSERV   start/use/stop METS Servers before/during/after workflows
@@ -170,7 +172,7 @@ EOF
             exit
             ;;
         *)
-            if ! test -d "$1"; then
+            if ! [[ -d "$1" ]]; then
                 echo >&2 "ERROR: target '$1' is not a directory"
                 exit 1
             fi
@@ -180,29 +182,29 @@ EOF
     shift
 done
 
-if test -z "$WORKFLOW"; then
+if [[ -z "$WORKFLOW" ]]; then
     echo >&2 "ERROR: must set concrete workflow file (-f option)"
     exit 1
 fi
 
-if test "$WORKFLOW" = "${WORKFLOW#/}"; then
+if [[ "$WORKFLOW" = "${WORKFLOW#/}" ]]; then
     # relative path
-    if test -e "$WORKFLOW"; then
+    if [[ -e "$WORKFLOW" ]]; then
         WORKFLOW="$PWD/$WORKFLOW"
-    elif test -e "$SCRIPTDIR/$WORKFLOW"; then
+    elif [[ -e "$SCRIPTDIR/$WORKFLOW" ]]; then
         WORKFLOW="$SCRIPTDIR/$WORKFLOW"
-    elif test -e "$SHAREDIR/$WORKFLOW"; then
+    elif [[ -e "$SHAREDIR/$WORKFLOW" ]]; then
         WORKFLOW="$SHAREDIR/$WORKFLOW"
     fi
 fi
-if ! test -e "$WORKFLOW"; then
+if ! [[ -e "$WORKFLOW" ]]; then
     echo >&2 "ERROR: cannot resolve path name '$WORKFLOW'"
     exit 1
 fi
 
 CFGDIR="$(realpath $(dirname "$WORKFLOW"))"
 CFGNAME="$(basename "${WORKFLOW%.mk}")"
-if  test -n "$XFERHOST"; then
+if  [[ -n "$XFERHOST" ]]; then
     # will be copied via to host via --bf relative to --wd
     WORKFLOW="$CFGDIR/./${CFGNAME}.mk"
     # sharedir will be added on host

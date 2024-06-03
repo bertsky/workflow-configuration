@@ -161,8 +161,17 @@ define failrecipe =
 { $(if $(wildcard $@),touch -c -d "$(shell date -Ins -r $@)" $@,rm -fr $@); false; }
 endef
 endif
+ifdef FAILRETRY
+define retryrecipe =
+retry() { for ((attempt=0; attempt<$(FAILRETRY); attempt++)); do "$$@" && break; done; }; retry 
+endef
+else
+define retryrecipe =
+endef
+endif
 define toolrecipe =
 $(and $(TIMEOUT),timeout $(TIMEOUT)) \
+$(retryrecipe) \
 $(TOOL) \
 $(and $(LOGLEVEL),-l $(LOGLEVEL)) \
 $(and $(PAGES),-g $(PAGES)) \
