@@ -261,12 +261,18 @@ if ((METSSERV && PAGEWISE)); then
     # disable document-parallel behaviour to avoid oversubscription
     #PARALLEL=0
     parallelopts+=(--jobs 1) # default is 100% i.e. num cores
+    if [[ -n "$XFERHOST" ]]; then makeopts+=(--jobs 1); fi
     LOAD=0
     JOBS=0
 else
     # enable document-parallel options here
-    ((LOAD)) && parallelopts+=(--load $LOAD)
-    ((JOBS)) && parallelopts+=(--jobs $JOBS)
+    if [[ -n "$XFERHOST" ]]; then
+        ((LOAD)) && parallelopts+=(--load $LOAD)
+        ((JOBS)) && parallelopts+=(--jobs $JOBS)
+    else
+        ((LOAD)) && makeopts+=(--load $LOAD)
+        ((JOBS)) && makeopts+=(--jobs $JOBS)
+    fi
 fi
 
 if ((PARALLEL)); then
