@@ -313,11 +313,12 @@ else
             ocrd workspace -d "$target" -U "$target"/mets.sock server start 2>&1 | tee -a "$target.$CFGNAME.log" &
             sleep 2
             make "${makeopts[@]}" METS_SOCKET=mets.sock -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+            exitcodes+=( $? )
             ocrd workspace -d "$target" -U "$target"/mets.sock server stop | tee -a "$target.$CFGNAME.log" 2>&1
         else
             make "${makeopts[@]}" -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
+            exitcodes+=( $? )
         fi
-        exitcodes+=( $? )
         ((${exitcodes[-1]}==0)) && echo -n "success:" || echo -n "failure:"
         echo " $target"
     done
