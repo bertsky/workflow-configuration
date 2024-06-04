@@ -217,7 +217,7 @@ override MAKEFLAGS = n
 	$(if $(and $(TOOL),$<),$(info '$(TOOL) -I $(subst $(space),$(comma),$+) -O $@ -p "{ $(subst ",\",$(PARAMS)) }" $(OPTIONS)'))
 else ifeq ($(PAGEWISE),1)
 # page-wise: determine list of pages and split up into pseudo-targets
-PAGE_RANGE = $(shell ocrd workspace find $(and $(PAGES),-g $(PAGES)) -k page_id)
+PAGE_RANGE = $(shell ocrd workspace list-page $(and $(PAGES),-r $(PAGES)))
 %:
 	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" $(and $(PAGEWISE),page-wise) with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
