@@ -37,6 +37,7 @@ Contents:
       * [FAILDUMMY](#faildummy)
       * [METSSERV](#metsserv)
       * [PAGEWISE](#pagewise)
+      * [JOBDB](#jobdb)
       * [Remote distribution](#remote-distribution)
  * [Customisation](#customisation)
     * [Recommendations](#recommendations)
@@ -513,7 +514,7 @@ and thus increases efficiency. It also allows calling processors for pages indep
 (because the server synchronises METS updates, which the filesystem `mets.xml` cannot).
 
 So a very useful combination is `METSSERV=1 PAGEWISE=1`. (In that combination, the top-level
-number of jobs, `-j`, and load-level, `-l`, will also be distributed to the page-wise calls;
+number of jobs, `-j`, and load-level, `-l`, will be distributed to the page-wise calls;
 see below).
 
 ##### PAGEWISE
@@ -525,11 +526,42 @@ setting is still respected, i.e. it only splits up the requested pages.)
 This is most useful in combination with `FAILDUMMY=1` (for per-page error handling) and `METSSERV=1`
 (for parallel distribution).
 
+Note: the combination `PAGEWISE=1 METSSERV=1` will reserve all jobs (options `-j N` and `-l N`)
+for the parallel pages instead of parallel documents.
+
+##### JOBDB
+
+To generate an SQL database and feed it with the jobs' status, set `JOBDB` to some non-empty
+file path. As soon as ocrd-make starts, it will create a new `jobs` table with the following schema:
+
+| *table header* | *description* |
+| --- | --- |
+| Seq | consecutive job number |
+| Host | remote host (`-X` option), if any |
+| Starttime | date started, if running |
+| JobRuntime | duration so far, if running |
+| Send | number of bytes sent, if any |
+| Receive | number of bytes received, if any |
+| Exitval | exit status (-1000 if not started) |
+| _Signal | interrupt signal, if any |
+| Command | (ocrd-)make command line |
+| V1 | workspace path |
+| Stdout | captured standard output |
+| Stderr | captured standard error |
+
+This will use `sqlite3`, which (requires `libdbd-sqlite3-perl` to be installed and) is incapable
+of true concurrency, so you need to open the database in read-only mode, e.g.
+
+    sqlite3 "file:$JOBDB?immutable=1&mode=ro" '.headers on' '.mode csv' 'SELECT * FROM jobs;'
+
+Without this, only a CSV-formatted log file of finished jobs gets generated under `$CFGNAME.$$.log`
+(i.e. using the name of the workflow and process ID).
+
 ##### Remote distribution
 
 To run jobs on another machine (which has ocrd-make and the respecive OCR-D processors installed),
-transferring the workflow configuration file and workspace directories prior to execution, and 
-the results afterwards, use `-X` or `--transfer`. 
+transferring the workflow configuration file and workspace directories prior to execution, and
+the results afterwards, use `-X` or `--transfer`.
 
 It takes as argument the remote host name and remote working directory, separated by a colon. In case
 the installation on the remote side needs initialization after login, use `--remote-init` followed by

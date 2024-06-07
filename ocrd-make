@@ -20,6 +20,7 @@
 SCRIPTDIR="$(dirname "$0")"
 SHAREDIR="$(cd $(dirname "$0") && pwd)"
 WORKFLOW=
+JOBDB=
 PARALLEL=0
 PAGEWISE=0
 METSSERV=0
@@ -134,6 +135,8 @@ Running OCR-D workflow configurations on multiple workspaces:
   * % (name of the workspace directory, overriding the default goal)
 
   Variables:
+  * JOBDB: path of an sqlite3 database file to feed with jobs status
+    (if unset, no SQL database will be generated, only a CSV-formatted log file)
   * LOGLEVEL: override global loglevel for all OCR-D processors
     (if unset, then default/configured logging levels apply)
   * PAGES: override page selection (comma-separated list)
@@ -275,6 +278,14 @@ if ((PARALLEL)); then
     fi
 
     echo >&2 "INFO: processing ${#targets[*]} workspaces with ${makeopts[*]} in parallel"
+    # keep time stamps, so unchanged data will not be copied back at return
+    export PARALLEL_RSYNC_OPTS="-rlDzRt"
+    if [[ -n "$JOBDB" ]]; then
+        # can be read synchronously (despite locking) via URL notation:
+        # sqlite3 "file:$CFGNAME.sqlite?immutable=1&mode=ro" '.headers on' '.mode csv' 'SELECT * FROM jobs;'
+        # schema: Seq,Host,Starttime,JobRuntime,Send,Receive,Exitval,_Signal,Command,V1,Stdout,Stderr
+        parallelopts+=(--sqlandworker sqlite3:///$JOBDB/jobs)
+    fi
     # 
     # --halt soon,fail=3    exit when 3 jobs fail, but wait for running jobs to complete.
     # --halt soon,fail=3%   exit when 3% of the jobs have failed, but wait for running jobs to complete.

@@ -56,7 +56,7 @@ help:
 .PHONY: help
 
 deps-ubuntu:
-	apt-get -y install parallel xmlstarlet bc sed
+	apt-get -y install parallel xmlstarlet bc sed libdbd-sqlite3-perl
 
 XSLPROGS =$(EXISTING_TRANSFORMS:%.xsl=%)
 SHPROGS = ocrd-make ocrd-import ocrd-page-transform
