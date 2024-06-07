@@ -291,7 +291,7 @@ if ((PARALLEL)); then
     # --halt soon,fail=3%   exit when 3% of the jobs have failed, but wait for running jobs to complete.
     #  defaults to never, which runs all jobs no matter what.
     if [[ -n "$XFERHOST" ]]; then
-        parallelopts+=(-S "$XFERHOST" --transfer --return {} --cleanup --bf "$WORKFLOW")
+        parallelopts+=(-S "$XFERHOST" --transfer --return {} --bf "$WORKFLOW")
         [[ -n "$XFERWORKDIR" ]] && parallelopts+=(--wd "$XFERWORKDIR")
         # we cannot just use `make` directly, since the installation on the remote host
         # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
