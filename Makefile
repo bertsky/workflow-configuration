@@ -72,7 +72,7 @@ $(XSLPROGS:%=$(BINDIR)/%): %: xsl-transform
 	chmod +x $@
 
 $(BINDIR) $(SHAREDIR):
-	@mkdir $@
+	@mkdir -p $@
 
 install: install-bin | $(SHAREDIR)
 	cp -Lf $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS) ocrd-tool.json $(SHAREDIR)
