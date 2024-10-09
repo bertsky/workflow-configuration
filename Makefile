@@ -106,12 +106,14 @@ test/data2:
 	ocrd workspace -d $@ rename-group ORIGINAL OCR-D-IMG
 	ocrd workspace -d $@ prune-files
 
-TAG ?= bertsky/workflow-configuration
+DOCKER_BASE_IMAGE = docker.io/ocrd/core-cuda-torch:v2.69.0
+DOCKER_TAG ?= bertsky/workflow-configuration
 docker:
 	docker build \
-	-t $(TAG) \
-	--build-arg VCS_REF=$(git rev-parse --short HEAD) \
-	--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") .
+	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
+	--build-arg VCS_REF=$$(git rev-parse --short HEAD) \
+	--build-arg BUILD_DATE=$$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+	-t $(DOCKER_TAG) .
 
 .PHONY: deps-ubuntu install install-bin uninstall test docker
 
