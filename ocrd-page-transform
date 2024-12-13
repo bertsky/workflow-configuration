@@ -150,17 +150,15 @@ function main {
     # shellcheck source=../core/ocrd/bashlib/lib.bash
     source $(ocrd bashlib filename)
     ocrd__wrap "$SHAREDIR/ocrd-tool.json" "ocrd-page-transform" "$@"
-    ocrd__minversion 2.58.1
+    ocrd__minversion 2.68.1
 
     local xsl="${params[xsl]}"
     local xsltparam="${params[xslt-params]}"
     local pretty="${params[pretty-print]}"
     if test -e "$xsl"; then
         xsl="$(realpath "$xsl")"
-    elif ocrd__list_resources | fgrep -q "/$xsl"; then
-        xsl="$(ocrd__list_resources | fgrep -m1 "/$xsl")"
     else
-        ocrd__raise "cannot find xsl resource '$xsl'"
+        xsl="$(ocrd__resolve_resource "$xsl")"
     fi
     cd "${ocrd__argv[working_dir]}"
     local out_file_grp=${ocrd__argv[output_file_grp]}
