@@ -22,6 +22,7 @@
   <xsl:template match="//pc:NoiseRegion"/>
   <xsl:template match="//pc:UnknownRegion"/>
   <xsl:template match="//pc:CustomRegion"/>
+  <xsl:template match="//pc:ReadingOrder"/>
   <xsl:template match="node()|text()|@*">
     <xsl:copy>
       <xsl:apply-templates select="node()|text()|@*"/>
