@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel", "setuptools-ocrd"]
+
+[project]
+name = "workflow_configuration"
+authors = [
+    {name = "Robert Sachunsky", email = "sachunsky@informatik.uni-leipzig.de"},
+]
+description = "a makefilization for OCR-D workflows, with configuration examples"
+readme = "README.md"
+license = {text = "Apache License 2.0"}
+requires-python = ">=3.8"
+keywords = ["ocr", "ocr-d"]
+
+dynamic = ["version", "dependencies", "optional-dependencies"]
+
+# https://pypi.org/classifiers/
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Other Audience",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Text Processing",
+]
+
+[project.scripts]
+ocrd-import = "workflow_configuration.ocrd_import:cli"
+ocrd-page-transform = "workflow_configuration.ocrd_page_transform:cli"
+
+[project.urls]
+Homepage = "https://github.com/bertsky/workflow_configuration"
+Repository = "https://github.com/bertsky/workflow_configuration.git"
+
+
+[tool.setuptools.dynamic]
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools]
+packages = ["workflow_configuration"]
+package-data = {"*" = ["*.json", "*.xsl", "*.mk"]}
