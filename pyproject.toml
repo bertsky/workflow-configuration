@@ -65,6 +65,7 @@ mets-add-nsprefix-mets = "workflow_configuration.xsl_transform:cli"
 mets-alias-filegrp = "workflow_configuration.xsl_transform:cli"
 mets-copy-agents = "workflow_configuration.xsl_transform:cli"
 fix-page-coords = "workflow_configuration.fix_page_coords:cli"
+ocrd-make = "workflow_configuration.shellscript:cli"
 
 [project.urls]
 Homepage = "https://github.com/bertsky/workflow_configuration"
@@ -76,4 +77,4 @@ dependencies = {file = ["requirements.txt"]}
 
 [tool.setuptools]
 packages = ["workflow_configuration"]
-package-data = {"*" = ["*.json", "*.xsl", "*.mk"]}
+package-data = {"*" = ["*.json", "*.xsl", "*.mk", "*.sh", "Makefile"]}
