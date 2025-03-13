@@ -64,6 +64,7 @@ page-unflatten-tableregions = "workflow_configuration.xsl_transform:cli"
 mets-add-nsprefix-mets = "workflow_configuration.xsl_transform:cli"
 mets-alias-filegrp = "workflow_configuration.xsl_transform:cli"
 mets-copy-agents = "workflow_configuration.xsl_transform:cli"
+fix-page-coords = "workflow_configuration.fix_page_coords:cli"
 
 [project.urls]
 Homepage = "https://github.com/bertsky/workflow_configuration"
