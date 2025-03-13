@@ -1,35 +1,21 @@
 # OCR-D workflow configuration installation makefile
 #
 # Install workflow configurations persistently by running:
-# `make install`
-# (in the git repo), which will copy workflow.mk (as `Makefile`), all
-# preconfigured makefiles, and some shell scripts into
-# a fixed target directory under the VIRTUAL_ENV prefix).
-#
-# For installation via shell-script:
-VIRTUAL_ENV ?= $(CURDIR)/local
-# copy `ocrd-make` here:
-BINDIR = $(abspath $(VIRTUAL_ENV))/bin
-# copy the makefiles here:
-SHAREDIR = $(abspath $(VIRTUAL_ENV))/share/workflow-configuration
+# `make install` or `pip install .` (in the git repo),
+# which will copy all distribution files (`Makefile` and all
+# preconfigured makefiles `*.mk`, as well as some Python
+# scripts and XSL transforms `*.xsl`) into the Python
+# site directory.
+# Using venv is recommended.
 
-# we need associative arrays, process substitution etc.
-# also, fail on failed intermediates as well:
+PYTHON = python3
+PIP = pip3
+PYTHONIOENCODING=utf8
+
 SHELL = bash -o pipefail
 
-CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
-
-CONFIGDIR := $(dir $(CONFIGURATION))
-
-EXISTING_MAKEFILES = $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.mk))
-EXISTING_TRANSFORMS = $(patsubst $(CONFIGDIR)/%,%,$(wildcard $(CONFIGDIR)/*.xsl))
-
-ifeq ($(filter workflow.mk,$(EXISTING_MAKEFILES)),)
-$(error "Found no .mk makefiles in source directory $(CONFIGDIR)")
-endif
-ifeq ($(EXISTING_TRANSFORMS),)
-$(error "Found no .xsl transforms in source directory $(CONFIGDIR)")
-endif
+DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.1.0
+DOCKER_TAG = bertsky/workflow-configuration
 
 help:
 	@echo "Installing OCR-D workflow configurations:"
@@ -39,48 +25,39 @@ help:
 	@echo
 	@echo "  Targets:"
 	@echo "  * help        (this message)"
-	@echo "  * test        (run test suite)"
-	@echo "  * deps-ubuntu (install extra system packages needed here, beyond ocrd and processors)"
-	@echo "  * install     (copy $(SHPROGS) and configuration makefiles to"
-	@echo "  *              VIRTUAL_ENV=$(VIRTUAL_ENV)"
-	@echo "  *              from repository workdir)"
-	@echo "  * uninstall   (remove $(SHPROGS) and configuration makefiles from"
-	@echo "  *              VIRTUAL_ENV=$(VIRTUAL_ENV))"
+	@echo "  * deps-ubuntu (install system packages needed here, beyond ocrd and processors)"
+	@echo "  * deps        (install Python packages needed here)"
+	@echo "  * install     (install this package via $(PIP)"
+	@echo "    build       (build source and binary distribution)"
+	@echo "  * uninstall   (remove this package via $(PIP)"
 	@echo "  * %.mk        (any filename with suffix .mk not existing yet: spawn new makefile from pattern)"
 	@echo "  * test        (run test suite)"
 	@echo
 	@echo "  Variables:"
 	@echo
-	@echo "  * VIRTUAL_ENV: directory prefix to use for installation"
+	@echo "  * PYTHON      (name of Python version binary [$(PYTHON)])"
+	@echo "  * PIP         (name of Python pip version binary [$(PIP)])"
 
 .PHONY: help
 
 deps-ubuntu:
 	apt-get -y install parallel xmlstarlet bc sed libdbd-sqlite3-perl
 
-XSLPROGS =$(EXISTING_TRANSFORMS:%.xsl=%)
-SHPROGS = ocrd-make ocrd-import ocrd-page-transform
-PROGS = $(SHPROGS) $(XSLPROGS)
-install-bin: $(PROGS:%=$(BINDIR)/%) | $(BINDIR)
+deps: requirements.txt
+	$(PIP) install -r $<
 
-$(SHPROGS:%=$(BINDIR)/%): $(BINDIR)/%: %
-	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
-	chmod +x $@
+install:
+	$(PIP) install .
 
-$(XSLPROGS:%=$(BINDIR)/%): %: xsl-transform
-	sed 's,^SHAREDIR=.*,SHAREDIR="$(SHAREDIR)",' < $< > $@
-	chmod +x $@
+install-dev:
+	$(PIP) install -e .
 
-$(BINDIR) $(SHAREDIR):
-	@mkdir $@
-
-install: install-bin | $(SHAREDIR)
-	cp -Lf $(EXISTING_MAKEFILES) $(EXISTING_TRANSFORMS) ocrd-tool.json $(SHAREDIR)
-	mv $(SHAREDIR)/workflow.mk  $(SHAREDIR)/Makefile
+build:
+	$(PIP) install build
+	$(PYTHON) -m build .
 
 uninstall:
-	$(RM) $(PROGS:%=$(BINDIR)/%)
-	$(RM) -r $(SHAREDIR)
+	$(PIP) uninstall workflow_configuration
 
 define testrecipe =
 function testfun { pushd `mktemp -d` && cp -pr $(abspath $^) . && /usr/bin/time ocrd-make -f all-tess-MODEL.mk MODEL=german_print LOGLEVEL=ERROR $(^F) "$$@" && $(RM) -r $$DIRSTACK; }; testfun
@@ -106,14 +83,15 @@ test/data2:
 	ocrd workspace -d $@ rename-group ORIGINAL OCR-D-IMG
 	ocrd workspace -d $@ prune-files
 
-TAG ?= bertsky/workflow-configuration
 docker:
 	docker build \
-	-t $(TAG) \
+	-t $(DOCKER_TAG) \
+	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$(git rev-parse --short HEAD) \
-	--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") .
+	--build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+	.
 
-.PHONY: deps-ubuntu install install-bin uninstall test docker
+.PHONY: deps-ubuntu deps install install-dev build uninstall test docker
 
 # spawn a new configuration
 define skeleton =
@@ -172,9 +150,4 @@ export skeleton
 # do not search for implicit rules here:
 %/Makefile: ;
 Makefile: ;
-local.mk: ;
 ocrd-tool.json: ;
-$(CONFIGURATION): ;
-$(EXISTING_MAKEFILES): ;
-$(EXISTING_TRANSFORMS): ;
-$(PROGS): ;
