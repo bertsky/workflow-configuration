@@ -59,8 +59,12 @@ build:
 uninstall:
 	$(PIP) uninstall workflow_configuration
 
+TEST_WORKFLOW = -f all-tess-MODEL.mk MODEL=german_print \
+                -f transform.mk TROPTIONS="-P xsl page-extract-text.xsl \
+                  -P xslt-params '-s level=line' -P mimetype text/plain" \
+                -f cat-files.mk
 define testrecipe =
-function testfun { pushd `mktemp -d` && cp -pr $(abspath $^) . && /usr/bin/time ocrd-make -f all-tess-MODEL.mk MODEL=german_print LOGLEVEL=ERROR $(^F) "$$@" && $(RM) -r $$DIRSTACK; }; testfun
+function testfun { pushd `mktemp -d` && cp -pr $(abspath $^) . && /usr/bin/time ocrd-make $(TEST_WORKFLOW) LOGLEVEL=ERROR $(^F) "$$@" && $(RM) -r $$DIRSTACK; }; testfun
 endef
 test: test/data1 test/data2
 	$(testrecipe)
