@@ -20,6 +20,7 @@
 SCRIPTDIR="$(dirname "$0")"
 SHAREDIR="$(cd $(dirname "$0") && pwd)"
 WORKFLOW=
+WORKFLOWS=()
 JOBDB=
 PARALLEL=0
 PAGEWISE=0
@@ -32,6 +33,25 @@ XFERWORKDIR=
 XFERINIT=
 
 set -e -o pipefail
+
+resolve_wf() {
+    RES="$1"
+    if [[ "$RES" = "${RES#/}" ]]; then
+        # relative path
+        if [[ -e "$RES" ]]; then
+            RES="$PWD/$RES"
+        elif [[ -e "$SCRIPTDIR/$RES" ]]; then
+            RES="$SCRIPTDIR/$RES"
+        elif [[ -e "$SHAREDIR/$RES" ]]; then
+            RES="$SHAREDIR/$RES"
+        fi
+    fi
+    if ! [[ -e "$RES" ]]; then
+        echo >&2 "ERROR: cannot resolve workflow path name '$RES'"
+        exit 1
+    fi
+    echo "$RES"
+}
 
 makeopts=()
 targets=()
@@ -49,11 +69,10 @@ while (($#)); do
             ;;
         -f)
             shift
-            WORKFLOW="$1"
+            WORKFLOWS+=($(resolve_wf "$1"))
             ;;
         --file=*|--makefile=*)
-            WORKFLOW="$1"
-            WORKFLOW="${WORKFLOW#*=}"
+            WORKFLOWS+=($(resolve_wf "${1#*=}"))
             ;;
         -j|--jobs)
             PARALLEL=1
@@ -128,7 +147,6 @@ Running OCR-D workflow configurations on multiple workspaces:
   * help (this message)
   * info (short self-description of the selected configuration)
   * show (print command sequence that would be executed for the selected configuration)
-  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')
 
   Targets (data processing):
   * all (recursively find all directories with a mets.xml, default goal)
@@ -165,14 +183,13 @@ EOF
             ;;
         *=*)
             makeopts+=( "$1" )
-            eval ${1%=*}=${1#*=}
+            eval "${1%%=*}"='"${1#*=}"'
             ;;
         all)
             ALL=1
             ;;
-        info|show|server)
-            make "${makeopts[@]}" -I $SHAREDIR -f $WORKFLOW $1
-            exit
+        info|show)
+            targets=($1)
             ;;
         *)
             if ! [[ -d "$1" ]]; then
@@ -185,33 +202,27 @@ EOF
     shift
 done
 
-if [[ -z "$WORKFLOW" ]]; then
+if (( ${#WORKFLOWS[*]} == 0 )); then
     echo >&2 "ERROR: must set concrete workflow file (-f option)"
     exit 1
 fi
+# combine workflows
+CFGNAME=$(for path in "${WORKFLOWS[@]}"; do echo -n $(basename "${path%.mk}")+; done)
+CFGNAME=${CFGNAME%+}
+WORKFLOW=$(mktemp -t -u ocrd-make-XXXXXXX.mk)
+# if workflows are not multi-staged, avoid re-including Makefile
+cat "${WORKFLOWS[@]}" | sed "/^include Makefile/d" > $WORKFLOW
+echo "include Makefile" >> $WORKFLOW
+cleanup() {
+    set +e
+    rm -f $WORKFLOW 2>/dev/null
+}
+trap cleanup EXIT
 
-if [[ "$WORKFLOW" = "${WORKFLOW#/}" ]]; then
-    # relative path
-    if [[ -e "$WORKFLOW" ]]; then
-        WORKFLOW="$PWD/$WORKFLOW"
-    elif [[ -e "$SCRIPTDIR/$WORKFLOW" ]]; then
-        WORKFLOW="$SCRIPTDIR/$WORKFLOW"
-    elif [[ -e "$SHAREDIR/$WORKFLOW" ]]; then
-        WORKFLOW="$SHAREDIR/$WORKFLOW"
-    fi
-fi
-if ! [[ -e "$WORKFLOW" ]]; then
-    echo >&2 "ERROR: cannot resolve path name '$WORKFLOW'"
-    exit 1
-fi
-
-CFGDIR="$(realpath $(dirname "$WORKFLOW"))"
-CFGNAME="$(basename "${WORKFLOW%.mk}")"
 if  [[ -n "$XFERHOST" ]]; then
     # will be copied via to host via --bf relative to --wd
-    WORKFLOW="$CFGDIR/./${CFGNAME}.mk"
-    # sharedir will be added on host
-    makeopts+=( -f "$CFGNAME.mk" )
+    # sharedir will be added on host side
+    makeopts+=( -f "WORKFLOW" )
 else
     # include directory of workflow config itself,
     # in case it includes a local.mk or Makefile
@@ -219,6 +230,12 @@ else
     makeopts+=( -R -I "$SHAREDIR" -f "$WORKFLOW" )
 fi
 
+for target in "${targets[@]}"; do
+    if [ "$target" = info -o "$target" = show ]; then
+        make "${makeopts[@]}" $target
+        exit
+    fi
+done
 ((${#targets[*]})) || ALL=1
 if ((ALL)); then
     # find all */mets.xml
@@ -257,6 +274,7 @@ set +e
 
 if ((PARALLEL)); then
     parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
+    echo >&2 "INFO: joblog=$CFGNAME.$$.log"
 
     if [[ -n "$XFERHOST" ]]; then
         parallelopts+=(--jobs 1) # default is 100% i.e. num cores
@@ -285,6 +303,7 @@ if ((PARALLEL)); then
         # sqlite3 "file:$CFGNAME.sqlite?immutable=1&mode=ro" '.headers on' '.mode csv' 'SELECT * FROM jobs;'
         # schema: Seq,Host,Starttime,JobRuntime,Send,Receive,Exitval,_Signal,Command,V1,Stdout,Stderr
         parallelopts+=(--sqlandworker sqlite3:///$JOBDB/jobs)
+        echo >&2 "INFO: sqlite3 JOBDB=$JOBDB/jobs"
     fi
     # 
     # --halt soon,fail=3    exit when 3 jobs fail, but wait for running jobs to complete.
@@ -297,25 +316,24 @@ if ((PARALLEL)); then
         # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
         # also, we usually need to activate our venv for OCR-D on the remote,
         # hence optional extra commands XFERINIT:
-        parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]}" {} "2>&1" ::: "${targets[@]}"
+        parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]@Q}" {} "2>&1" ::: "${targets[@]}"
     elif ((METSSERV)); then
         parallel "${parallelopts[@]}" \
                  ocrd workspace -d {} -U {}/mets.sock server start "2>&1" "&" \
                  'sleep 2;' \
-                 make "${makeopts[@]}" METS_SOCKET=mets.sock -C {} "2>&1" \
+                 make "${makeopts[@]@Q}" METS_SOCKET=mets.sock -C {} "2>&1" \
                  ';result=$?;' \
                  ocrd workspace -d {} -U {}/mets.sock server stop "2>&1" \
                  ';exit $result' \
                  ::: "${targets[@]}"
     else
-        parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}"
+        parallel "${parallelopts[@]}" make "${makeopts[@]@Q}" -C {} "2>&1" ::: "${targets[@]}"
     fi | while read dir log; do
-        echo $dir
         cat $log >> ${dir%%/}.$CFGNAME.log
         rm $log
     done
     echo $CFGNAME.$$.log
-    exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
+    exitcodes=( $(cat $CFGNAME.$$.log | cut -d"	" -f7 | sed 1d) )
     for ((i=0; i<${#targets[*]}; i++)); do
         ((${exitcodes[$i]:-(-1)}==0)) && echo -n "success:" || echo -n "failure:"
         echo " ${targets[$i]}"

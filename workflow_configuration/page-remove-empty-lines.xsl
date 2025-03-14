@@ -7,7 +7,7 @@
       standalone="yes"
       encoding="UTF-8"
       omit-xml-declaration="no"/>
-  <xsl:template match="//pc:TextRegion"/>
+  <xsl:template match="//pc:TextLine[not(./pc:Word)]"/>
   <xsl:template match="node()|text()|@*">
     <xsl:copy>
       <xsl:apply-templates select="node()|text()|@*"/>

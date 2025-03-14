@@ -32,6 +32,7 @@
 # instead of `make` as above.
 #
 
+
 # make all targets as intermediate and not to be removed
 # (because we must remove via METS):
 .SECONDARY:
@@ -54,7 +55,7 @@ CONFIGURATION := $(abspath $(firstword $(MAKEFILE_LIST)))
 CONFIGDIR := $(dir $(CONFIGURATION))
 CONFIGNAME := $(basename $(notdir $(CONFIGURATION)))
 
-ifeq ($(filter-out Makefile workflow.mk,$(notdir $(MAKEFILE_LIST))),)
+ifeq ($(filter-out Makefile,$(notdir $(MAKEFILE_LIST))),)
 ifneq ($(MAKECMDGOALS),help)
 $(error Did you forget to select a workflow configuration makefile?)
 endif
@@ -70,7 +71,6 @@ help:
 	@echo "  * help (this message)"
 	@echo "  * info (short self-description of the selected configuration)"
 	@echo "  * show (print command sequence that would be executed for the selected configuration)"
-	@echo "  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')"
 	@echo
 	@echo "  Targets (data processing):"
 	@echo "  * % (name of the target fileGrp, overriding the default goal)"
@@ -91,15 +91,8 @@ help:
 show: $(.DEFAULT_GOAL)
 
 export PATH VIRTUAL_ENV
-server: PORT ?= 5000
-server: HOST ?= 127.0.0.1
-server: TIMEOUT ?= 0
-server: WORKERS ?= 1
-server:
-	IFS=$$'\n' TASKS=($$($(MAKE) -s --no-print-directory -R -f $(CONFIGURATION) show | sed -n "s/'$$//;s/^'ocrd-//p")); \
-	ocrd workflow server -j $(WORKERS) -t $(TIMEOUT) -h $(HOST) -p $(PORT) $(and $(LOGLEVEL),-l $(LOGLEVEL)) "$${TASKS[@]}" 2>&1 | tee -a _server.$(CONFIGNAME).log
 
-.PHONY: show server
+.PHONY: show
 
 ifneq ($(wildcard $(CURDIR)/mets.xml),)
 # we are inside workspace
@@ -219,7 +212,7 @@ else ifeq ($(PAGEWISE),1)
 # page-wise: determine list of pages and split up into pseudo-targets
 PAGE_RANGE = $(shell ocrd workspace list-page $(and $(PAGES),-r $(PAGES)))
 %:
-	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" $(and $(PAGEWISE),page-wise) with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
+	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" page-wise with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
 	$(MAKE) $(foreach PAGE,$(PAGE_RANGE),PAGE/$(PAGE)) -f $(CONFIGURATION) -I $(CONFIGDIR) PAGEWISE=2 TARGET=$@ PREREQ=$< $(and $(JOBS),-j $(filter-out 0,$(JOBS))) $(and $(LOAD),-l $(filter-out 0,$(LOAD)))
 else ifeq ($(PAGEWISE),2)
@@ -246,8 +239,13 @@ ifndef METS_SOCKET
 .NOTPARALLEL:
 endif
 
+# allow chaining makefiles
+unexport INPUT
+unexport OUTPUT
+.DEFAULT_GOAL = $(OUTPUT)
+
 else # (if not inside workspace)
-ifeq ($(filter help info show server,$(MAKECMDGOALS)),)
+ifeq ($(filter help info show,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)", and no generic goals among "$(MAKECMDGOALS)")
 endif # (if pseudo-target)
 endif # (if inside workspace)

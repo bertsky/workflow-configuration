@@ -1,0 +1,45 @@
+{
+  "version": "0.2.0",
+  "git_url": "https://github.com/bertsky/workflow-configuration",
+  "dockerhub": "ocrd/workflow-configuration",
+  "tools": {
+    "ocrd-page-transform": {
+      "executable": "ocrd-page-transform",
+      "description": "apply arbitrary XSL transformation file for PAGE-XML",
+      "categories": ["Quality assurance"],
+      "steps": [
+        "preprocessing/characterization",
+        "layout/segmentation",
+        "recognition/post-correction",
+        "post-processing/format-conversion"
+      ],
+      "input_file_grp_cardinality": 1,
+      "output_file_grp_cardinality": 1,
+      "parameters": {
+        "xsl": {
+          "description": "File path of the XSL transformation script (see `ocrd resmgr` for prepackaged and user-installed files available by file name)",
+          "type": "string",
+          "format": "uri",
+          "content-type": "text/xsl",
+          "required": true
+        },
+        "xslt-params": {
+          "description": "Assignment of XSL transformation parameter values, given as in `xmlstarlet` (which differentiates between `-s name=value` for literal `value` and `-p name=value` for XPath expression `value`), white-space separated.",
+          "type": "string",
+          "default": ""
+        },
+        "pretty-print": {
+          "description": "Reformat with line breaks and this many spaces of indentation after XSL transformation (unless zero).",
+          "type": "number",
+          "format": "integer",
+          "default": 0
+        },
+        "mimetype": {
+          "description": "MIME type to register the output files under (should correspond to `xsl` result)",
+          "type": "string",
+          "default": "application/vnd.prima.page+xml"
+        }
+      }
+    }
+  }
+}

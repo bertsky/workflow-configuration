@@ -9,7 +9,7 @@ import re
 from urllib.request import urlopen
 from lxml import etree
 
-@click.command()
+@click.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.argument('pagefile', type=click.Path(exists=True, dir_okay=False))
 @click.option('-I', '--inplace', is_flag=True, default=False, help="Write result back to input file intead of stdout")
 @click.option('-B', '--backup', default='', help="Write a copy of the original file under this suffix")
