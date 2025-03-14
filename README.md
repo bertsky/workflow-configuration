@@ -178,8 +178,10 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-rm-nsprefix-pc # removes namespace prefix 'pc:'
     page-set-nsversion-2019 # update the PAGE namespace schema version to 2019
     page-fix-coords # replace negative values in coordinates by zero
-    page-flatten-tableregions # move recursive TableRegion cells to top level for editing in LAREX
-    page-unflatten-tableregions # move flattened TableRegion cells back to hierarchy after editing in LAREX
+    page-flatten-regions # move recursive *Region/TextRegion to top level for editing in LAREX
+    page-flatten-tableregions # (special case for table cells, i.e. TableRegion/TextRegion)
+    page-unflatten-regions # move flattened sub-TextRegions back to hierarchy after editing in LAREX
+    page-unflatten-tableregions # (special case for table cells, i.e. TableRegion/TextRegion)
     page-move-alternativeimage-below-page # try to push page-level AlternativeImage back to subsegments
     page-remove-alternativeimages # remove $which [last] AlternativeImage entries at hierarchy $level [page]
     page-remove-metadataitem # remove all MetadataItem entries
