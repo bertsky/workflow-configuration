@@ -53,7 +53,7 @@ class PageTransform(Processor):
         for kind, setting in pairwise(xsltparam.split()):
             key, val = setting.split('=')
             if kind == '-s':
-                self.xsltparams[key] = val
+                self.xsltparams[key] = "'%s'" % val
             elif kind == '-p':
                 self.xsltparams[key] = ET.XPath("'%s'" % val, namespaces={
                     'page': NAMESPACES['page'],
