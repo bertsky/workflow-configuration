@@ -274,6 +274,7 @@ set +e
 
 if ((PARALLEL)); then
     parallelopts=(--progress --joblog $CFGNAME.$$.log --files --tag)
+    echo >&2 "INFO: joblog=$CFGNAME.$$.log"
 
     if [[ -n "$XFERHOST" ]]; then
         parallelopts+=(--jobs 1) # default is 100% i.e. num cores
@@ -302,6 +303,7 @@ if ((PARALLEL)); then
         # sqlite3 "file:$CFGNAME.sqlite?immutable=1&mode=ro" '.headers on' '.mode csv' 'SELECT * FROM jobs;'
         # schema: Seq,Host,Starttime,JobRuntime,Send,Receive,Exitval,_Signal,Command,V1,Stdout,Stderr
         parallelopts+=(--sqlandworker sqlite3:///$JOBDB/jobs)
+        echo >&2 "INFO: sqlite3 JOBDB=$JOBDB/jobs"
     fi
     # 
     # --halt soon,fail=3    exit when 3 jobs fail, but wait for running jobs to complete.
