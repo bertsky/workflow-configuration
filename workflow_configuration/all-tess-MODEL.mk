@@ -1,8 +1,5 @@
 INPUT := $(or $(OUTPUT),$(INPUT),OCR-D-IMG)
 
-$(INPUT):
-	ocrd workspace find -G $@ --download
-
 OCR-D-OCR-TESS: $(INPUT)
 OCR-D-OCR-TESS: TOOL = ocrd-tesserocr-recognize
 OCR-D-OCR-TESS: MODEL ?= Fraktur+Latin

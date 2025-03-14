@@ -1,19 +1,3 @@
-# Install by copying (or symlinking) makefiles into a directory
-# where all OCR-D workspaces (unpacked BagIts) reside. Then
-# chdir to that location.
-
-# Call via:
-# `make -f WORKFLOW-CONFIG.mk WORKSPACE-DIRS` or
-# `make -f WORKFLOW-CONFIG.mk all` or just
-# `make -f WORKFLOW-CONFIG.mk`
-# To rebuild partially, you must pass -W to recursive make:
-# `make -f WORKFLOW-CONFIG.mk EXTRA_MAKEFLAGS="-W FILEGRP"`
-# To get help on available goals:
-# `make help`
-
-###
-# From here on, custom configuration begins.
-
 info:
 	@echo "Read GT segmentation (on any level, merely for page frame),"
 	@echo "or if not available, then read image files and binarize+crop,"
@@ -111,27 +95,25 @@ OCR8 = OCR-D-OCR-CALA-gt4histocr-$(DEW:OCR-D-%=%)
 $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8): $(DEW)
 
 $(OCR1) $(OCR2): TOOL = ocrd-cis-ocropy-recognize
-$(OCR1): PARAMS = "textequiv_level": "glyph", "model": "fraktur.pyrnn"
-$(OCR2): PARAMS = "textequiv_level": "glyph", "model": "fraktur-jze.pyrnn"
+$(OCR1): PARAMS = "textequiv_level": "glyph", "model": "fraktur.pyrnn.gz"
+$(OCR2): PARAMS = "textequiv_level": "glyph", "model": "fraktur-jze.pyrnn.gz"
 
 $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7): TOOL = ocrd-tesserocr-recognize
-$(OCR3): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "script/Fraktur"
-$(OCR4): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "script/Fraktur+script/Latin"
-$(OCR5): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "frk"
-$(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "frk+deu"
-$(OCR7): PARAMS = "textequiv_level" : "glyph", "overwrite_words": true, "model" : "GT4HistOCR_2000000+GT4HistOCR_300000+GT4HistOCR_100000"
+$(OCR3): PARAMS = "textequiv_level" : "glyph", "overwrite_segments": true, "model" : "Fraktur"
+$(OCR4): PARAMS = "textequiv_level" : "glyph", "overwrite_segments": true, "model" : "Fraktur+Latin"
+$(OCR5): PARAMS = "textequiv_level" : "glyph", "overwrite_segments": true, "model" : "deu_latf"
+$(OCR6): PARAMS = "textequiv_level" : "glyph", "overwrite_segments": true, "model" : "deu+deu_latf"
+$(OCR7): PARAMS = "textequiv_level" : "glyph", "overwrite_segments": true, "model" : "GT4HistOCR_2000000+GT4HistOCR_300000+GT4HistOCR_100000"
 
 $(OCR8): TOOL = ocrd-calamari-recognize
 $(OCR8): GPU = 1
-$(OCR8): PARAMS = "checkpoint" : "$(VIRTUAL_ENV)/share/calamari/GT4HistOCR/*.ckpt.json"
+$(OCR8): PARAMS = "checkpoint_dir" : "gt4histocr", "textequiv_level" : "glyph"
 
-OUTPUT: $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8) ;
+OCR-D-OCR-MULTI: $(OCR1) $(OCR2) $(OCR3) $(OCR4) $(OCR5) $(OCR6) $(OCR7) $(OCR8)
+OCR-D-OCR-MULTI: TOOL = ocrd-cor-asv-ann-align
+OCR-D-OCR-MULTI: PARAMS = "method": "combined"
 
-.PHONY: OUTPUT
-.DEFAULT_GOAL = OUTPUT
+OUTPUT := OCR-D-OCR-MULTI
 
-# Down here, custom configuration ends.
-###
-
-include Makefile
+.DEFAULT_GOAL = $(OUTPUT)
 
