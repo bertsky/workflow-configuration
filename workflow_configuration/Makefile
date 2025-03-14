@@ -212,7 +212,7 @@ else ifeq ($(PAGEWISE),1)
 # page-wise: determine list of pages and split up into pseudo-targets
 PAGE_RANGE = $(shell ocrd workspace list-page $(and $(PAGES),-r $(PAGES)))
 %:
-	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" $(and $(PAGEWISE),page-wise) with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
+	@$(if $(and $(TOOL),$<),$(info building "$@" from "$<" page-wise with pattern rule for "$(TOOL)"),$(error No recipe to build "$@" from "$<" with "$(TOOL)"))
 	$(file > $@.json, { $(PARAMS) })
 	$(MAKE) $(foreach PAGE,$(PAGE_RANGE),PAGE/$(PAGE)) -f $(CONFIGURATION) -I $(CONFIGDIR) PAGEWISE=2 TARGET=$@ PREREQ=$< $(and $(JOBS),-j $(filter-out 0,$(JOBS))) $(and $(LOAD),-l $(filter-out 0,$(LOAD)))
 else ifeq ($(PAGEWISE),2)
@@ -239,6 +239,9 @@ ifndef METS_SOCKET
 .NOTPARALLEL:
 endif
 
+# allow chaining makefiles
+unexport INPUT
+unexport OUTPUT
 .DEFAULT_GOAL = $(OUTPUT)
 
 else # (if not inside workspace)

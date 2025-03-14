@@ -188,9 +188,8 @@ EOF
         all)
             ALL=1
             ;;
-        info|show|server)
-            make "${makeopts[@]}" -I $SHAREDIR -f <(cat "${WORKFLOWS[*]}") $1
-            exit
+        info|show)
+            targets=($1)
             ;;
         *)
             if ! [[ -d "$1" ]]; then
@@ -208,6 +207,8 @@ if (( ${#WORKFLOWS[*]} == 0 )); then
     exit 1
 fi
 # combine workflows
+CFGNAME=$(for path in "${WORKFLOWS[@]}"; do echo -n $(basename "${path%.mk}")+; done)
+CFGNAME=${CFGNAME%+}
 WORKFLOW=$(mktemp -t -u ocrd-make-XXXXXXX.mk)
 # if workflows are not multi-staged, avoid re-including Makefile
 cat "${WORKFLOWS[@]}" | sed "/^include Makefile/d" > $WORKFLOW
@@ -229,6 +230,12 @@ else
     makeopts+=( -R -I "$SHAREDIR" -f "$WORKFLOW" )
 fi
 
+for target in "${targets[@]}"; do
+    if [ "$target" = info -o "$target" = show ]; then
+        make "${makeopts[@]}" $target
+        exit
+    fi
+done
 ((${#targets[*]})) || ALL=1
 if ((ALL)); then
     # find all */mets.xml
@@ -307,25 +314,24 @@ if ((PARALLEL)); then
         # will most likely use a different SHAREDIR, so wrap via ocrd-make there;
         # also, we usually need to activate our venv for OCR-D on the remote,
         # hence optional extra commands XFERINIT:
-        parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]}" {} "2>&1" ::: "${targets[@]}"
+        parallel "${parallelopts[@]}" "$XFERINIT" "${XFERINIT:+;}" ocrd-make "${makeopts[@]@Q}" {} "2>&1" ::: "${targets[@]}"
     elif ((METSSERV)); then
         parallel "${parallelopts[@]}" \
                  ocrd workspace -d {} -U {}/mets.sock server start "2>&1" "&" \
                  'sleep 2;' \
-                 make "${makeopts[@]}" METS_SOCKET=mets.sock -C {} "2>&1" \
+                 make "${makeopts[@]@Q}" METS_SOCKET=mets.sock -C {} "2>&1" \
                  ';result=$?;' \
                  ocrd workspace -d {} -U {}/mets.sock server stop "2>&1" \
                  ';exit $result' \
                  ::: "${targets[@]}"
     else
-        parallel "${parallelopts[@]}" make "${makeopts[@]}" -C {} "2>&1" ::: "${targets[@]}"
+        parallel "${parallelopts[@]}" make "${makeopts[@]@Q}" -C {} "2>&1" ::: "${targets[@]}"
     fi | while read dir log; do
-        echo $dir
         cat $log >> ${dir%%/}.$CFGNAME.log
         rm $log
     done
     echo $CFGNAME.$$.log
-    exitcodes=( $(cat $_ | cut -d"	" -f7 | sed 1d) )
+    exitcodes=( $(cat $CFGNAME.$$.log | cut -d"	" -f7 | sed 1d) )
     for ((i=0; i<${#targets[*]}; i++)); do
         ((${exitcodes[$i]:-(-1)}==0)) && echo -n "success:" || echo -n "failure:"
         echo " ${targets[$i]}"
