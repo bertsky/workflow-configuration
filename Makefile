@@ -99,24 +99,21 @@ define skeleton =
 #
 # Install by copying (or symlinking) makefiles into a directory
 # where all OCR-D workspaces (unpacked BagIts) reside and running
-# `make` there (or including files from there).
+# `ocrd-make` there (or including files from there).
 #
 # Call via:
-# `make -f WORKFLOW-CONFIG.mk`
+# `ocrd-make -f WORKFLOW-CONFIG.mk`
 #
 # To rebuild partially, you must pass -W to `make`:
-# `make -f WORKFLOW-CONFIG.mk -W FILEGRP`
+# `ocrd-make -f WORKFLOW-CONFIG.mk -W FILEGRP`
 #
 # To build in parallel, use `-j [CPUS] [-l [LOADLEVEL]]` etc.
 #
 # To get general help:
-# `make -f WORKFLOW-CONFIG.mk help`
+# `ocrd-make --help`
 #
 # To get a description of the workflow:
-# `make -f WORKFLOW-CONFIG.mk info`
-
-###
-# From here on, custom configuration begins.
+# `ocrd-make -f WORKFLOW-CONFIG.mk info`
 
 INPUT = OCR-D-IMG
 
@@ -126,7 +123,7 @@ $$(INPUT):
 OUTPUT = OCR-D-OUT
 $$(OUTPUT): $$(INPUT)
 $$(OUTPUT): TOOL = ocrd-dummy
-$$(OUTPUT): PARAMS = 
+$$(OUTPUT): OPTIONS =
 
 info:
 	@echo "This is a dummy configuration that creates a copy $$(OUTPUT) of the input fileGrp $$(INPUT)"
@@ -135,11 +132,6 @@ info:
 
 .DEFAULT_GOAL = $$(OUTPUT)
 
-# Down here, custom configuration ends.
-###
-
-SELFDIR := $$(dir $$(abspath $$(firstword $$(MAKEFILE_LIST))))
-include $$(SELFDIR)/Makefile
 endef
 
 export skeleton
@@ -147,7 +139,9 @@ export skeleton
 %.mk:
 	@echo >$@ "$$skeleton"
 
+
 # do not search for implicit rules here:
 %/Makefile: ;
 Makefile: ;
 ocrd-tool.json: ;
+local.mk: ;
