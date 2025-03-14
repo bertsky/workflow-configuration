@@ -2,7 +2,9 @@
 
 ## OCR-D workflow configurations based on makefiles
 
-This provides an attempt at running [OCR-D](https://ocr-d.de) workflows configured and controlled via makefiles using [GNU bash](http://www.gnu.org/software/bash), [GNU make](http://www.gnu.org/software/make/) and [GNU parallel](http://www.gnu.org/software/parallel).
+This provides an attempt at running [OCR-D](https://ocr-d.de) workflows
+configured and controlled via makefiles using [GNU bash](http://www.gnu.org/software/bash),
+[GNU make](http://www.gnu.org/software/make/) and [GNU parallel](http://www.gnu.org/software/parallel).
 
 Makefilization offers the following _advantages_:
 
@@ -63,9 +65,14 @@ Or equivalently, install the following packages:
 - `xmlstarlet`
 - `bc` and `sed`
 
-Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself along with its dependencies in the current shell environment. Moreover, depending on the specific configurations you want to use (i.e. the processors it contains), additional modules must be installed. See [OCR-D setup guide](https://ocr-d.de/en/setup) for instructions. 
+Additionally, you must of course install [ocrd](https://github.com/OCR-D/core) itself
+along with its dependencies in the current Python virtual environment (venv). Moreover,
+depending on the specific configurations you want to use (i.e. the processors it contains),
+additional modules must be installed. See [OCR-D setup guide](https://ocr-d.de/en/setup)
+for instructions.
 
-(Yes, `workflow-configuration` is already part of [ocrd_all](https://github.com/OCR-D/ocrd_all), which is also available on [Dockerhub](https://hub.docker.com/r/ocrd/all).)
+(Yes, `workflow-configuration` is already part of [ocrd_all](https://github.com/OCR-D/ocrd_all),
+which is also available on [Dockerhub](https://hub.docker.com/r/ocrd/all).)
 
 
 ### Installation
@@ -74,18 +81,13 @@ Run:
 
     make install
 
-... if you are in a (Python) virtual environment. Otherwise specify the installation prefix directory via environment variable `VIRTUAL_ENV`.
+... if you are in a (Python) virtual environment, which is recommended.
 
-Assuming `$VIRTUAL_ENV/bin` is in your `PATH`, you can then call:
-
-    cd WORKSPACE && make [OPTIONS] -f WORKFLOW-CONFIG.mk
-    make -C WORKSPACE [OPTIONS] -f WORKFLOW-CONFIG.mk
-
-... for processing single workspace directory, or ...
+You can then call:
 
     ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk WORKSPACE...
 
-... for processing multiple workspaces at once (with the same interface as above).
+... for processing any number of workspace directories.
 
 Where:
 
@@ -95,10 +97,12 @@ Where:
 
 Calling workflows is possible from anywhere in your filesystem, but for the `WORKFLOW_CONFIG.mk` you may need to:
 
-- either provide the `*.mk` configurations in the source directory at installation time (to ensure they are installed under the installation prefix and can always be found by file name only)
+- either provide the `*.mk` configurations in the source directory at installation time
+  (to ensure they are installed under the site prefix and can always be found by file name)
 - or provide full paths at runtime (by absolute path name, or relative to the CWD).
 
-(The previous version of `ocrd-make` tried to copy or symlink all makefiles to the runtime directory. You can still use those, but should remove the old `Makefile`.)
+(The previous version of `ocrd-make` tried to copy or symlink all makefiles to the runtime directory.
+ You can still use those, but should remove the old `Makefile`.)
 
 ### Docker Image
 
@@ -107,7 +111,8 @@ Instead of the above native installation steps, you can use the prebuilt image f
     docker pull bertsky/workflow-configuration
     docker run -V /path/to/data:/data bertsky/workflow-configuration ocrd-make ...
 
-For general guidance on using Docker with OCR-D, see [User Guide](https://ocr-d.de/en/user_guide#translating-native-commands-to-docker-calls).
+For general guidance on using Docker with OCR-D, see
+[User Guide](https://ocr-d.de/en/user_guide#translating-native-commands-to-docker-calls).
 
 ### Usage
 
@@ -126,21 +131,41 @@ To get help for the import tool:
 
 
 <pre>
-Usage: ocrd-import [OPTIONS] [DIRECTORY]
+Usage: ocrd-import [OPTIONS] WORKSPACE_DIR
 
-with options:
- -i|--ignore      keep going after unknown file types
- -s|--skip SUFFIX ignore file names ending in given SUFFIX (repeatable)
- -R|--regex EXPR  only include paths matching given EXPR (repeatable)
- -C|--no-convert  do not attempt to convert image file types
- -r|--render DPI  when converting PDFs, render at DPI pixel density
- -P|--nonnum-ids  do not use numeric pageIds but basename patterns
- -B|--basename    only use basename for IDs
+  Create OCR-D workspace meta-data (mets.xml) in WORKSPACE_DIR (or $PWD), importing...
+  * all image files (with known file extension or convertible via ImageMagick) under fileGrp `image_group`
+  * all .xml files (if they validate as PAGE-XML) under fileGrp `pagexml_group`
+  * all .xml files (if they validate as ALTO-XML) under fileGrp `altoxml_group`
+  ...but failing otherwise (unless `ignore` is set)
 
-Create OCR-D workspace meta-data (mets.xml) in DIRECTORY (or /home/xbert/unsortiert/arbeit/heyer/tools/ocrd_tesserocr), importing...
-* all image files (with known file extension or convertible via ImageMagick) under fileGrp OCR-D-IMG
-* all .xml files (if they validate as PAGE-XML) under fileGrp OCR-D-SEG-PAGE
-...but failing otherwise.
+Options:
+  -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
+                                  Log level
+  -i, --ignore                    keep going after unknown file types
+  -s, --skip SUFFIX               ignore file names ending in given SUFFIX
+                                  (repeatable)
+  -R, --regex EXPR                only include paths matching given EXPR
+                                  (repeatable)
+  -C, --no-convert                do not attempt to convert image file types
+  -r, --render DPI                when converting PDFs, render at DPI pixel
+                                  density  [default: 300]
+  -P, --nonnum-ids                do not use numeric pageIds but basename
+                                  patterns
+  -B, --basename                  only use basename for IDs
+  -n, --dry-run                   only show resulting METS to stdout via pager
+  -I, --image-group TEXT          fileGrp to place detected or converted
+                                  images into  [default: OCR-D-IMG]
+  -X, --pagexml-group TEXT        fileGrp to place detected PAGE-XML into
+                                  [default: OCR-D-PAGE]
+  -A, --altoxml-group TEXT        fileGrp to place detected ALTO-XML into
+                                  [default: OCR-D-ALTO]
+  -G, --directory-groups          instead of assigning files to `image_group`
+                                  or `pagexml_group`, and trying to convert
+                                  everything else to images, create a group
+                                  for every subdirectory and auto-detect its
+                                  MIME types
+  -h, --help                      Show this message and exit.
 </pre>
 
 </details>
@@ -160,6 +185,8 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-remove-metadataitem # remove all MetadataItem entries
     page-remove-dead-regionrefs # remove non-existing regionRefs
     page-remove-empty-readingorder # remove empty ReadingOrder or groups
+    page-remove-empty-text-regions # remove empty TextRegion entries
+    page-remove-empty-lines # remove empty TextLine entries
     page-remove-all-regions # remove all *Region (and TextLine and Word and Glyph) entries
     page-remove-text-regions # remove all TextRegion (and TextLine and Word and Glyph) entries
     page-remove-regions # remove all *Region (and TextLine and Word and Glyph) entries of $type
@@ -187,21 +214,26 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
 <pre>
 Usage: NAME [OPTIONS] [FILE]
 
-with options:
- -s name=value    set param NAME to string literal VALUE (repeatable)
- -p name=value    set param NAME to XPath expression VALUE (repeatable)
- -i|--inplace     overwrite input file with result of transformation
- -P|--pretty      pretty-print output (line breaks with indentation)
- -d|--diff        show diff between input and output
- -D|--dump        just print the transformation stylesheet (XSL)
- -h|--help        just show this message
+  Open PAGE file XMLFILE (or stdin) and apply the XSL transformation "page-add-nsprefix-pc.xsl"
+  Write the result to stdout, unless...
+  -i / --inplace is given - in which case the result is written back to the
+                            file silently, or
+  -d / --diff is given    - in which case the result will be compared to the
+                            input and a patch shown on stdout.
 
-Open PAGE-XML file FILE (or stdin) and apply the XSL transformation "NAME.xsl"
-Write the result to stdout, unless...
- -i / --inplace is given - in which case the result is written back to the
-                           file silently, or
- -d / --diff is given - in which case the result will be compared to the
-                        input and a patch shown on stdout.
+Options:
+  -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
+                                  Log level
+  -s, --string-param NAME=VALUE   set param NAME to string literal VALUE
+  -p, --xpath-param NAME=VALUE    set param NAME to XPath expression VALUE
+  -i, --inplace                   overwrite input file with result of
+                                  transformation
+  -P, --pretty                    pretty-print output (line breaks with
+                                  indentation
+  -d, --diff                      show diff between input and output via pager
+  -D, --dump                      just print the transformation stylesheet
+                                  (XSL)
+  -h, --help                      Show this message and exit.
 </pre>
 
 
@@ -230,50 +262,59 @@ use `ocrd-page-transform` and pass the filename of the transformation as paramet
 
 
 <pre>
-Usage: ocrd-page-transform [OPTIONS]
+Usage: ocrd-page-transform [worker|server] [OPTIONS]
 
   apply arbitrary XSL transformation file for PAGE-XML
 
-  > Processor base class and helper functions. A processor is a tool
-  > that implements the uniform OCR-D command-line interface for run-
-  > time data processing. That is, it executes a single workflow step,
-  > or a combination of workflow steps, on the workspace (represented by
-  > local METS). It reads input files for all or requested physical
-  > pages of the input fileGrp(s), and writes output files for them into
-  > the output fileGrp(s). It may take  a number of optional or
-  > mandatory parameters. Process the :py:attr:`workspace`  from the
-  > given :py:attr:`input_file_grp` to the given
-  > :py:attr:`output_file_grp` for the given :py:attr:`page_id` under
-  > the given :py:attr:`parameter`.
+  > Transform pages with the given XSLT.
 
-  > (This contains the main functionality and needs to be overridden by
-  > subclasses.)
+  > Open the input PAGE element hierarchy and process it with the XSLT
+  > processor parsed from the `xsl` resource file, passing `xslt-params`
+  > as XSLT parameters (if any).
 
-Options:
+  > Generate a new PAGE object from the resulting hierarchy, finally
+  > serialise and add it as new output file.
+
+Subcommands:
+    worker      Start a processing worker rather than do local processing
+    server      Start a processor server rather than do local processing
+
+Options for processing:
+  -m, --mets URL-PATH             URL or file path of METS to process [./mets.xml]
+  -w, --working-dir PATH          Working directory of local workspace [dirname(URL-PATH)]
   -I, --input-file-grp USE        File group(s) used as input
   -O, --output-file-grp USE       File group(s) used as output
-  -g, --page-id ID                Physical page ID(s) to process
+  -g, --page-id ID                Physical page ID(s) to process instead of full document []
   --overwrite                     Remove existing output pages/images
-                                  (with --page-id, remove only those)
+                                  (with "--page-id", remove only those).
+                                  Short-hand for OCRD_EXISTING_OUTPUT=OVERWRITE
+  --debug                         Abort on any errors with full stack trace.
+                                  Short-hand for OCRD_MISSING_OUTPUT=ABORT
   --profile                       Enable profiling
-  --profile-file                  Write cProfile stats to this file. Implies --profile
+  --profile-file PROF-PATH        Write cProfile stats to PROF-PATH. Implies "--profile"
   -p, --parameter JSON-PATH       Parameters, either verbatim JSON string
                                   or JSON file path
   -P, --param-override KEY VAL    Override a single JSON object key-value pair,
                                   taking precedence over --parameter
-  -m, --mets URL-PATH             URL or file path of METS to process
-  -w, --working-dir PATH          Working directory of local workspace
+  -U, --mets-server-url URL       URL of a METS Server for parallel incremental access to METS
+                                  If URL starts with http:// start an HTTP server there,
+                                  otherwise URL is a path to an on-demand-created unix socket
   -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
-                                  Log level
+                                  Override log level globally [INFO]
+  --log-filename LOG-PATH         File to redirect stderr logging to (overriding ocrd_logging.conf).
+
+Options for information:
   -C, --show-resource RESNAME     Dump the content of processor resource RESNAME
   -L, --list-resources            List names of processor resources
-  -J, --dump-json                 Dump tool description as JSON and exit
-  -h, --help                      This help message
+  -J, --dump-json                 Dump tool description as JSON
+  -D, --dump-module-dir           Show the 'module' resource location path for this processor
+  -h, --help                      Show this message
   -V, --version                   Show version
 
 Parameters:
    "xsl" [string - REQUIRED]
-    File path of the XSL transformation script
+    File path of the XSL transformation script (see `ocrd resmgr` for
+    prepackaged and user-installed files available by file name)
    "xslt-params" [string - ""]
     Assignment of XSL transformation parameter values, given as in
     `xmlstarlet` (which differentiates between `-s name=value` for
@@ -282,9 +323,10 @@ Parameters:
    "pretty-print" [number - 0]
     Reformat with line breaks and this many spaces of indentation after
     XSL transformation (unless zero).
-    "mimetype" [string - "application/vnd.prima.page+xml"]
+   "mimetype" [string - "application/vnd.prima.page+xml"]
     MIME type to register the output files under (should correspond to
     `xsl` result)
+
 </pre>
 
 
@@ -306,21 +348,26 @@ likewise wrapped as standalone CLIs `mets-...`:
 <pre>
 Usage: NAME [OPTIONS] [FILE]
 
-with options:
- -s name=value    set param NAME to string literal VALUE (repeatable)
- -p name=value    set param NAME to XPath expression VALUE (repeatable)
- -i|--inplace     overwrite input file with result of transformation
- -P|--pretty      pretty-print output (line breaks with indentation)
- -d|--diff        show diff between input and output
- -D|--dump        just print the transformation stylesheet (XSL)
- -h|--help        just show this message
+  Open METS file XMLFILE (or stdin) and apply the XSL transformation "mets-copy-agents.xsl"
+  Write the result to stdout, unless...
+  -i / --inplace is given - in which case the result is written back to the
+                            file silently, or
+  -d / --diff is given    - in which case the result will be compared to the
+                            input and a patch shown on stdout.
 
-Open METS-XML file FILE (or stdin) and apply the XSL transformation "NAME.xsl"
-Write the result to stdout, unless...
- -i / --inplace is given - in which case the result is written back to the
-                           file silently, or
- -d / --diff is given - in which case the result will be compared to the
-                        input and a patch shown on stdout.
+Options:
+  -l, --log-level [OFF|ERROR|WARN|INFO|DEBUG|TRACE]
+                                  Log level
+  -s, --string-param NAME=VALUE   set param NAME to string literal VALUE
+  -p, --xpath-param NAME=VALUE    set param NAME to XPath expression VALUE
+  -i, --inplace                   overwrite input file with result of
+                                  transformation
+  -P, --pretty                    pretty-print output (line breaks with
+                                  indentation
+  -d, --diff                      show diff between input and output via pager
+  -D, --dump                      just print the transformation stylesheet
+                                  (XSL)
+  -h, --help                      Show this message and exit.
 </pre>
 
 
@@ -336,14 +383,11 @@ To run a configuration...
    (Yes, you can have to look inside and browse its rules!)
 3. Execute:
 
-        cd WORKSPACE && make [OPTIONS] -f WORKFLOW-CONFIG.mk # or
-        make -C WORKSPACE [OPTIONS] -f WORKFLOW-CONFIG.mk
-
-    ... for processing single workspace directory, or ...
-
         ocrd-make [OPTIONS] -f WORKFLOW-CONFIG.mk all
 
-    (The special target `all` (which is also the default goal) will search for all workspaces in the current directory recursively.) You can also run on a subset of workspaces by passing these as goals on the command line...
+    (The special target `all` (which is also the default goal) will search for all workspaces
+    in the current directory recursively.) You can also run on a subset of workspaces
+    by passing these as goals on the command line...
 
         ocrd-make -f WORKFLOW-CONFIG.mk PATH/TO/WORKSPACE1 PATH/TO/WORKSPACE2 ...
 
@@ -401,22 +445,22 @@ Options -j and -l are intercepted.)
 
 To get help:
 
-    [ocrd-]make help
+    ocrd-make help
 
 
 To get a short description of the chosen configuration:
 
-    [ocrd-]make -f CONFIGURATION.mk info
+    ocrd-make -f CONFIGURATION.mk info
 
 
 To see the command sequence that would be executed for the chosen configuration (in the format of `ocrd process`):
 
-    [ocrd-]make -f CONFIGURATION.mk show
+    ocrd-make -f CONFIGURATION.mk show
 
 
 To run a workflow server for the command sequence that would be executed for the chosen configuration (to be controlled via `ocrd workflow client` or HTTP):
 
-    [ocrd-]make -f CONFIGURATION.mk server
+    ocrd-make -f CONFIGURATION.mk server
 
 To spawn a new configuration file, in the directory of the source repository, do:
 
@@ -441,11 +485,6 @@ You can also use that pattern to specify any fileGrp other than the `.DEFAULT_GO
 
     ocrd-make -f CONFIGURATION.mk .DEFAULT_GOAL=OCR-D-SEG-LINE all
 
-If you run `make` in the workspace directly instead of having `ocrd-make` do it recursively, then no `all` target exists and you can directly set the target fileGrp to replace `.DEFAULT_GOAL`:
-
-    make -C WORKSPACE -f CONFIGURATION.mk -W OCR-D-BIN
-    make -C WORKSPACE -f CONFIGURATION.mk OCR-D-SEG-LINE
-
 There are 6 **special variables** and 1 **additional option**:
 
 ##### LOGLEVEL
@@ -453,14 +492,12 @@ There are 6 **special variables** and 1 **additional option**:
 To override the default (or configured) log levels for all processors and libraries, use `LOGLEVEL`. For example, to get debugging everywhere, do:
 
     ocrd-make -f CONFIGURATION.mk all LOGLEVEL=DEBUG
-    make -C WORKSPACE -f CONFIGURATION.mk LOGLEVEL=DEBUG
 
 ##### PAGES
 
 To process only a subset of pages in all fileGrps, set `PAGES`. For example, to only consider pages `PHYS_0005` through `PHYS_0007`, do:
 
     ocrd-make -f CONFIGURATION.mk all PAGES=PHYS_0005..PHYS_0007
-    make -C WORKSPACE -f CONFIGURATION.mk PAGES=PHYS_0005..PHYS_0007
 
 The variable gets interpreted as the usual [--page-id parameter](https://ocr-d.de/en/spec/cli#-g---page-id-id) by processors, so it supports
 range expressions, comma-separated lists and regular expressions. 
@@ -468,7 +505,6 @@ range expressions, comma-separated lists and regular expressions.
 If the METS provides physical page labels (`@ORDER` or `@ORDERLABEL`), then these work as well:
 
     ocrd-make -f CONFIGURATION.mk all PAGES=5..7
-    make -C WORKSPACE -f CONFIGURATION.mk PAGES=5..7
 
 ##### TIMEOUT
 
@@ -580,7 +616,6 @@ Next, edit the file to your needs: Write rules using file groups as prerequisite
 
 #### Recommendations
 
-- Keep the comments and the `include Makefile` directive in the file.
 - Change/customize at least the `info` target, and the `INPUT` and `OUTPUT` name/rule.
 - Copy/paste rules from the existing configurations.
 - Define variables with the names of all target/prerequisite file groups, so rules and dependent targets can re-use them (and the names can be easily changed later).
@@ -630,8 +665,6 @@ EVAL: TOOL = ocrd-cor-asv-ann-evaluate
 # we must override the default goal to be our desired overall target:
 .DEFAULT_GOAL = EVAL
 
-# ALWAYS necessary:
-include Makefile
 ```
 
 ### Testing
