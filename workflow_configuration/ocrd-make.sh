@@ -20,6 +20,7 @@
 SCRIPTDIR="$(dirname "$0")"
 SHAREDIR="$(cd $(dirname "$0") && pwd)"
 WORKFLOW=
+WORKFLOWS=()
 JOBDB=
 PARALLEL=0
 PAGEWISE=0
@@ -32,6 +33,25 @@ XFERWORKDIR=
 XFERINIT=
 
 set -e -o pipefail
+
+resolve_wf() {
+    RES="$1"
+    if [[ "$RES" = "${RES#/}" ]]; then
+        # relative path
+        if [[ -e "$RES" ]]; then
+            RES="$PWD/$RES"
+        elif [[ -e "$SCRIPTDIR/$RES" ]]; then
+            RES="$SCRIPTDIR/$RES"
+        elif [[ -e "$SHAREDIR/$RES" ]]; then
+            RES="$SHAREDIR/$RES"
+        fi
+    fi
+    if ! [[ -e "$RES" ]]; then
+        echo >&2 "ERROR: cannot resolve workflow path name '$RES'"
+        exit 1
+    fi
+    echo "$RES"
+}
 
 makeopts=()
 targets=()
@@ -49,11 +69,10 @@ while (($#)); do
             ;;
         -f)
             shift
-            WORKFLOW="$1"
+            WORKFLOWS+=($(resolve_wf "$1"))
             ;;
         --file=*|--makefile=*)
-            WORKFLOW="$1"
-            WORKFLOW="${WORKFLOW#*=}"
+            WORKFLOWS+=($(resolve_wf "${1#*=}"))
             ;;
         -j|--jobs)
             PARALLEL=1
@@ -165,13 +184,13 @@ EOF
             ;;
         *=*)
             makeopts+=( "$1" )
-            eval ${1%=*}=${1#*=}
+            eval "${1%%=*}"='"${1#*=}"'
             ;;
         all)
             ALL=1
             ;;
         info|show|server)
-            make "${makeopts[@]}" -I $SHAREDIR -f $WORKFLOW $1
+            make "${makeopts[@]}" -I $SHAREDIR -f <(cat "${WORKFLOWS[*]}") $1
             exit
             ;;
         *)
@@ -185,33 +204,25 @@ EOF
     shift
 done
 
-if [[ -z "$WORKFLOW" ]]; then
+if (( ${#WORKFLOWS[*]} == 0 )); then
     echo >&2 "ERROR: must set concrete workflow file (-f option)"
     exit 1
 fi
+# combine workflows
+WORKFLOW=$(mktemp -t -u ocrd-make-XXXXXXX.mk)
+# if workflows are not multi-staged, avoid re-including Makefile
+cat "${WORKFLOWS[@]}" | sed "/^include Makefile/d" > $WORKFLOW
+echo "include Makefile" >> $WORKFLOW
+cleanup() {
+    set +e
+    rm -f $WORKFLOW 2>/dev/null
+}
+trap cleanup EXIT
 
-if [[ "$WORKFLOW" = "${WORKFLOW#/}" ]]; then
-    # relative path
-    if [[ -e "$WORKFLOW" ]]; then
-        WORKFLOW="$PWD/$WORKFLOW"
-    elif [[ -e "$SCRIPTDIR/$WORKFLOW" ]]; then
-        WORKFLOW="$SCRIPTDIR/$WORKFLOW"
-    elif [[ -e "$SHAREDIR/$WORKFLOW" ]]; then
-        WORKFLOW="$SHAREDIR/$WORKFLOW"
-    fi
-fi
-if ! [[ -e "$WORKFLOW" ]]; then
-    echo >&2 "ERROR: cannot resolve path name '$WORKFLOW'"
-    exit 1
-fi
-
-CFGDIR="$(realpath $(dirname "$WORKFLOW"))"
-CFGNAME="$(basename "${WORKFLOW%.mk}")"
 if  [[ -n "$XFERHOST" ]]; then
     # will be copied via to host via --bf relative to --wd
-    WORKFLOW="$CFGDIR/./${CFGNAME}.mk"
-    # sharedir will be added on host
-    makeopts+=( -f "$CFGNAME.mk" )
+    # sharedir will be added on host side
+    makeopts+=( -f "WORKFLOW" )
 else
     # include directory of workflow config itself,
     # in case it includes a local.mk or Makefile

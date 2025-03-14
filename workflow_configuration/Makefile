@@ -239,6 +239,8 @@ ifndef METS_SOCKET
 .NOTPARALLEL:
 endif
 
+.DEFAULT_GOAL = $(OUTPUT)
+
 else # (if not inside workspace)
 ifeq ($(filter help info show server,$(MAKECMDGOALS)),)
 $(error No workspaces in "$(CURDIR)", and no generic goals among "$(MAKECMDGOALS)")
