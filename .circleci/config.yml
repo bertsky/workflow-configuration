@@ -11,7 +11,7 @@ jobs:
       - run: apt-get update && apt-get install -y --no-install-recommends make wget unzip
       - checkout
       - run: make deps-ubuntu
-      - run: make install VIRTUAL_ENV=/usr/local
+      - run: make install
       - run: ocrd resmgr download -n
           https://ub-backup.bib.uni-mannheim.de/~stweil/tesstrain/german_print/tessdata_best/german_print_0.877_1254744_7309067.traineddata
           ocrd-tesserocr-recognize german_print.traineddata
