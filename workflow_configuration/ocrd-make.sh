@@ -147,7 +147,6 @@ Running OCR-D workflow configurations on multiple workspaces:
   * help (this message)
   * info (short self-description of the selected configuration)
   * show (print command sequence that would be executed for the selected configuration)
-  * server (start workflow server for the selected configuration; control via 'ocrd workflow client')
 
   Targets (data processing):
   * all (recursively find all directories with a mets.xml, default goal)
