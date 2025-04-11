@@ -41,6 +41,7 @@ help:
 .PHONY: help
 
 deps-ubuntu:
+	apt-get update
 	apt-get -y install parallel xmlstarlet bc sed libdbd-sqlite3-perl
 
 deps: requirements.txt
