@@ -320,7 +320,7 @@ if ((PARALLEL)); then
     elif ((METSSERV)); then
         parallel "${parallelopts[@]}" \
                  ocrd workspace -d {} -U {}/mets.sock server start "2>&1" "&" \
-                 'sleep 2;' \
+                 'sleep 2; test -e /proc/$!/stat || exit -1;' \
                  make "${makeopts[@]@Q}" METS_SOCKET=mets.sock -C {} "2>&1" \
                  ';result=$?;' \
                  ocrd workspace -d {} -U {}/mets.sock server stop "2>&1" \
@@ -345,6 +345,7 @@ else
         if ((METSSERV)); then
             ocrd workspace -d "$target" -U "$target"/mets.sock server start 2>&1 | tee -a "$target.$CFGNAME.log" &
             sleep 2
+            test -e /proc/$!/stat
             make "${makeopts[@]}" METS_SOCKET=mets.sock -C "$target" 2>&1 | tee -a "$target.$CFGNAME.log"
             exitcodes+=( $? )
             ocrd workspace -d "$target" -U "$target"/mets.sock server stop | tee -a "$target.$CFGNAME.log" 2>&1
