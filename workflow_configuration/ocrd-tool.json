@@ -11,7 +11,7 @@
         "preprocessing/characterization",
         "layout/segmentation",
         "recognition/post-correction",
-        "post-processing/format-conversion"
+        "postprocessing/format-conversion"
       ],
       "input_file_grp_cardinality": 1,
       "output_file_grp_cardinality": 1,
