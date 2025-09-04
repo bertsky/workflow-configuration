@@ -218,7 +218,7 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                 attr = (fpath, fname, base, mime, "")
                 page = pages.setdefault(base, dict())
                 if directory_groups:
-                    group = dirname
+                    group = dirname.replace('/', '_')
                 if group in page:
                     LOG.critical("would result in duplicate file IDs: %s vs %s",
                                  str(page[group]), str(attr))
