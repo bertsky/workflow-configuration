@@ -14,8 +14,9 @@ PYTHONIOENCODING=utf8
 
 SHELL = bash -o pipefail
 
-DOCKER_BASE_IMAGE = docker.io/ocrd/core:v3.1.0
-DOCKER_TAG = bertsky/workflow-configuration
+DOCKER_BASE_IMAGE ?= docker.io/ocrd/core:latest
+DOCKER_TAG ?= ocrd/workflow-configuration
+DOCKER ?= docker
 
 help:
 	@echo "Installing OCR-D workflow configurations:"
@@ -41,6 +42,7 @@ help:
 .PHONY: help
 
 deps-ubuntu:
+	apt-get update
 	apt-get -y install parallel xmlstarlet bc sed libdbd-sqlite3-perl
 
 deps: requirements.txt
@@ -88,7 +90,7 @@ test/data2:
 	ocrd workspace -d $@ prune-files
 
 docker:
-	docker build \
+	$(DOCKER) build \
 	-t $(DOCKER_TAG) \
 	--build-arg DOCKER_BASE_IMAGE=$(DOCKER_BASE_IMAGE) \
 	--build-arg VCS_REF=$(git rev-parse --short HEAD) \

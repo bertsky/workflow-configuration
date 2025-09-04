@@ -242,7 +242,7 @@ endif
 # allow chaining makefiles
 unexport INPUT
 unexport OUTPUT
-.DEFAULT_GOAL = $(OUTPUT)
+.DEFAULT_GOAL ?= $(OUTPUT)
 
 else # (if not inside workspace)
 ifeq ($(filter help info show,$(MAKECMDGOALS)),)

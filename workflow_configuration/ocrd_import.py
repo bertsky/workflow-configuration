@@ -121,7 +121,7 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                 if os.path.getsize(fpath) == 0:
                     LOG.warning("ignoring empty file '%s'", fpath)
                     continue
-                if fname.endswith("*.log") or \
+                if fname.endswith(".log") or \
                    any(fname.endswith(suffix) for suffix in skip):
                     LOG.info("skipping file '%s'", fpath)
                     continue
