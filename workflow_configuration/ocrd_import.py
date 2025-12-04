@@ -125,8 +125,8 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                    any(fname.endswith(suffix) for suffix in skip):
                     LOG.info("skipping file '%s'", fpath)
                     continue
-                if regex:
-                   if any(expr.fullmatch(fname) for expr in regex):
+                if len(regex):
+                   if any(expr.fullmatch(fpath) for expr in regex):
                        LOG.info("matching file '%s'", fpath)
                    else:
                        continue
