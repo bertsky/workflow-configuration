@@ -16,7 +16,7 @@ from ocrd_models.utils import xmllint_format
 @click.option('-I', '--inplace', is_flag=True, default=False, help="Write result back to input file intead of stdout")
 @click.option('-B', '--backup', default='', help="Write a copy of the original file under this suffix")
 def cli(pagefile, inplace, backup):
-    """Fix coordinates in PAGE-XML by setting negative points to zero."""
+    """partition PAGE-XML ReadingOrder from single OrderedGroup to top UnorderedGroup divided into OrderedGroups starting at every @header-type text regions."""
 
     with click.open_file(pagefile, 'rb') as page:
         tree = etree.parse(page)

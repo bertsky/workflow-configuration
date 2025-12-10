@@ -30,6 +30,9 @@ Contents:
  * [Usage](#usage)
     * [ocrd-import](#ocrd-import)
     * [PAGE transformations and ocrd-page-transform](#ocrd-page-transform)
+    * [page-lines2orientation](#page-lines2orientation)
+    * [page-header2unordered](#page-header2unordered)
+    * [page-heading2unordered](#page-heading2unordered)
     * [METS transformations](#mets-transformations)
     * [ocrd-make](#ocrd-make)
       * [LOGLEVEL](#loglevel)
@@ -333,6 +336,103 @@ Parameters:
 
 
 </details>
+
+#### page-lines2orientation
+
+Retrieves lines from all paragraphs of a PAGE-XML file
+and geometrically estimates their average skew,
+annotating it under `/Page/@orientation`.
+
+
+<details><summary>standalone CLI</summary>
+
+
+<pre>
+Usage: page-lines2orientation [OPTIONS] PAGEFILE
+
+  Retrieve lines from all paragraphs and geometrically determine their average
+  skew.
+
+Options:
+  -I, --inplace      Write result back to input file intead of stdout
+  -B, --backup TEXT  Write a copy of the original file under this suffix
+  -h, --help         Show this message and exit.
+</pre>
+
+
+</details>
+
+To perform the same transformation, but as a [workspace processor](https://ocr-d.de/en/spec/cli),
+use `ocrd-command` and pass the shell command of the transformation as parameter, e.g.:
+
+    ocrd-command -P command "page-lines2orientation @INFILE > @OUTFILE"
+
+
+#### page-header2unordered
+
+Approximates sectioning (or article separation) in a PAGE-XML
+by re-organising its reading order from a total order (just
+one `OrderedGroup`) to a partial order (many smaller `OrderedGroup`
+under one `UnorderedGroup`) but cutting at those text regions
+where a new `@header` starts.
+
+<details><summary>standalone CLI</summary>
+
+
+<pre>
+Usage: page-header2unordered [OPTIONS] PAGEFILE
+
+  partition PAGE-XML ReadingOrder from single OrderedGroup to top
+  UnorderedGroup divided into OrderedGroups starting at every @header-type
+  text regions.
+
+Options:
+  -I, --inplace      Write result back to input file intead of stdout
+  -B, --backup TEXT  Write a copy of the original file under this suffix
+  -h, --help         Show this message and exit.
+</pre>
+
+
+</details>
+
+To perform the same transformation, but as a [workspace processor](https://ocr-d.de/en/spec/cli),
+use `ocrd-command` and pass the shell command of the transformation as parameter, e.g.:
+
+    ocrd-command -P command "page-header2unordered @INFILE > @OUTFILE"
+
+
+#### page-heading2unordered
+
+Approximates sectioning (or article separation) in a PAGE-XML
+by re-organising its reading order from a total order (just
+one `OrderedGroup`) to a partial order (many smaller `OrderedGroup`
+under one `UnorderedGroup`) but cutting at those text regions
+where a new `@heading` starts.
+
+<details><summary>standalone CLI</summary>
+
+
+<pre>
+Usage: page-heading2unordered [OPTIONS] PAGEFILE
+
+  partition PAGE-XML ReadingOrder from single OrderedGroup to top
+  UnorderedGroup divided into OrderedGroups starting at every @heading-type
+  text regions.
+
+Options:
+  -I, --inplace      Write result back to input file intead of stdout
+  -B, --backup TEXT  Write a copy of the original file under this suffix
+  -h, --help         Show this message and exit.
+</pre>
+
+
+</details>
+
+To perform the same transformation, but as a [workspace processor](https://ocr-d.de/en/spec/cli),
+use `ocrd-command` and pass the shell command of the transformation as parameter, e.g.:
+
+    ocrd-command -P command "page-heading2unordered @INFILE > @OUTFILE"
+
 
 #### METS transformations
 
