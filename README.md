@@ -203,6 +203,7 @@ To perform various tasks via XSLT on PAGE-XML files (these all share the same op
     page-ensure-textequiv-conf # set TextEquiv/@conf attributes if missing
     page-ensure-textequiv-index # set TextEquiv/@index attributes from element order
     page-ensure-textequiv-unicode # create empty TextEquiv/Unicode elements if empty
+    page-sort-readingorder # sort TextRegions by ReadingOrder
     page-sort-textequiv-index # sort TextEquiv by @index
     page-textequiv-lines-to-regions # project text from TextLines to TextRegions (concat with LF in between)
     page-textequiv-words-to-lines # project text from Words to TextLines (concat with spaces in between)
