@@ -118,18 +118,18 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
             for fname in files:
                 fpath = os.path.join(dirname, fname)
                 LOG.debug("inspecting file '%s'", fpath)
-                if os.path.getsize(fpath) == 0:
-                    LOG.warning("ignoring empty file '%s'", fpath)
-                    continue
-                if fname.endswith(".log") or \
-                   any(fname.endswith(suffix) for suffix in skip):
-                    LOG.info("skipping file '%s'", fpath)
-                    continue
                 if len(regex):
                    if any(expr.fullmatch(fpath) for expr in regex):
                        LOG.info("matching file '%s'", fpath)
                    else:
                        continue
+                if fname.endswith(".log") or \
+                   any(fname.endswith(suffix) for suffix in skip):
+                    LOG.info("skipping file '%s'", fpath)
+                    continue
+                if os.path.getsize(fpath) == 0:
+                    LOG.warning("ignoring empty file '%s'", fpath)
+                    continue
                 base, suffix = os.path.splitext(fname)
                 # create ID from path
                 if not basename:
