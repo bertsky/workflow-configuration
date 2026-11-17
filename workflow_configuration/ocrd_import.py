@@ -185,15 +185,16 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                     resdir = os.path.join(tmpdir, group)
                     os.makedirs(resdir, exist_ok=True)
                     try:
-                        with Image(filename=fpath, **kwargs) as img:
-                            converted = img.convert('tiff')
-                        if mime in ["application/pdf", "application/postscript"]:
-                            converted.resample(render, render)
-                            converted.alpha_channel = 'remove'
-                        for i, img in enumerate(converted.sequence):
+                        with Image.ping(filename=fpath) as img:
+                            npages = len(img.sequence)
+                        for i in range(npages):
+                            with Image(filename=fpath + "[%d]" % i, **kwargs) as img:
+                                converted = img.convert('tiff')
+                            if mime in ["application/pdf", "application/postscript"]:
+                                converted.resample(render, render)
+                                converted.alpha_channel = 'remove'
                             fpath2 = os.path.join(resdir, base + "_%04d.tif" % i)
-                            with img.clone() as img:
-                                img.save(filename=fpath2, adjoin=False)
+                            converted.save(filename=fpath2, adjoin=False)
                             LOG.debug("saved converted file to %s", fpath2)
                     except Exception:
                         LOG.exception("convert for '%s' failed", fpath)
