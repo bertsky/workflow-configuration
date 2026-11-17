@@ -187,14 +187,18 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                     try:
                         with Image.ping(filename=fpath) as img:
                             npages = len(img.sequence)
-                        for i in range(npages):
-                            with Image(filename=fpath + "[%d]" % i, **kwargs) as img:
-                                converted = img.convert('tiff')
-                            if mime in ["application/pdf", "application/postscript"]:
-                                converted.resample(render, render)
-                                converted.alpha_channel = 'remove'
-                            fpath2 = os.path.join(resdir, base + "_%04d.tif" % i)
-                            converted.save(filename=fpath2, adjoin=False)
+                        if npages > 1:
+                            LOG.debug("file has %d pages", npages)
+                            iopaths = [(fpath + "[%d]" % i,
+                                        os.path.join(resdir, base + "_%04d.tif" % i))
+                                       for i in range(npages)]
+                            with mp.Pool(4, convert_image_init, [kwargs]) as pool:
+                                for fpath2 in pool.starmap(convert_image, iopaths):
+                                    LOG.debug("saved converted file to %s", fpath2)
+                        else:
+                            fpath2 = os.path.join(resdir, base + ".tif")
+                            convert_image_init(kwargs)
+                            convert_image(fpath, fpath2)
                             LOG.debug("saved converted file to %s", fpath2)
                     except Exception:
                         LOG.exception("convert for '%s' failed", fpath)
@@ -272,7 +276,7 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                 os.makedirs(group, exist_ok=True)
         LOG.info("moving %d converted files from tmpdir to output directory", len(sched_move))
         for location, path in sched_move:
-            LOG.info("mv '%s' '%s'", os.path.join(location, path), path)
+            LOG.debug("mv '%s' '%s'", os.path.join(location, path), path)
             if not dry_run:
                 move(os.path.join(location, path), path)
         if dry_run:
@@ -281,6 +285,22 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
             click.echo_via_pager(content)
     LOG.info("Success on '%s'", workspace_dir)
     return True
+
+convert_image_kwargs = {}
+def convert_image_init(kwargs):
+    global convert_image_kwargs
+    convert_image_kwargs = kwargs
+
+def convert_image(inpath, outpath):
+    global convert_image_kwargs
+    with Image(filename=inpath, **convert_image_kwargs) as img:
+        converted = img.convert('tiff')
+    if convert_image_kwargs:
+        render = convert_image_kwargs.get('resolution', 0) // 2
+        converted.resample(render, render)
+        converted.alpha_channel = 'remove'
+    converted.save(filename=outpath, adjoin=False)
+    return outpath
 
 if __name__ == '__main__':
     cli()
