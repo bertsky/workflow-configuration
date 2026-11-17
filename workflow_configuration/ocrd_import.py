@@ -1,15 +1,16 @@
 from __future__ import absolute_import
 
-import click
 import re
 import os
 import sys
-import subprocess
 import  multiprocessing as mp
 from time import sleep
 from tempfile import TemporaryDirectory
 from shutil import move
 from logging import getLogger, ERROR
+
+import click
+from wand.image import Image
 
 from ocrd.decorators import ocrd_loglevel
 from ocrd import (
@@ -74,7 +75,7 @@ def cli(workspace_dir, dry_run, log_level, **kwargs):
                                    # auto-kill in case of failure
                                    daemon=True)
         mets_server.start()
-        sleep(2)
+        sleep(3)
         assert mets_server.is_alive() # not much worth (also true when not running *yet*)
         sys.exit(0 if ocrd_import(tmpdir, workspace_dir, mets_server_url,
                                   log_level=log_level, dry_run=dry_run,
@@ -172,31 +173,30 @@ def ocrd_import(tmpdir, workspace_dir, mets_server_url,
                 else:
                     # try convert to image
                     if mime in ["application/pdf", "application/postscript"]:
-                        inopts = ["-units", "PixelsPerInch", "-density", str(2*render)]
-                        outopts = ["-background", "white", "-alpha", "remove", "-alpha", "off",
-                                   "-colorspace", "Gray", "-units", "PixelsPerInch", "-resample", str(render),
-                                   "-density", str(render)]
+                        kwargs = dict(units="pixelsperinch",
+                                      resolution=2 * render,
+                                      background="white",
+                                      colorspace="gray",
+                        )
                     else:
-                        inopts = []
-                        outopts = []
+                        kwargs = {}
                     group = image_group
                     LOG.warning("converting '%s' to '%s/%s_*.tif' prior to import", fpath, group, base)
                     resdir = os.path.join(tmpdir, group)
                     os.makedirs(resdir, exist_ok=True)
-                    result = subprocess.run(["convert"] +
-                                            #["-debug", "All"] +
-                                            inopts + [fpath] + \
-                                            outopts + [os.path.join(resdir, base + "_%04d.tif")],
-                                            # ensure temporary files get deleted afterwards
-                                            env=dict(MAGICK_TMPDIR=tmpdir, **os.environ),
-                                            shell=False, text=True, capture_output=True, encoding="utf-8")
-                    #LOG.debug(result.args)
-                    if result.stdout:
-                        LOG.debug("convert for '%s': %s", fpath, result.stdout)
-                    if result.stderr:
-                        LOG.warning("convert for '%s': %s", fpath, result.stderr)
-                    if result.returncode != 0:
-                        LOG.error("convert for '%s' failed", fpath)
+                    try:
+                        with Image(filename=fpath, **kwargs) as img:
+                            converted = img.convert('tiff')
+                        if mime in ["application/pdf", "application/postscript"]:
+                            converted.resample(render, render)
+                            converted.alpha_channel = 'remove'
+                        for i, img in enumerate(converted.sequence):
+                            fpath2 = os.path.join(resdir, base + "_%04d.tif" % i)
+                            with img.clone() as img:
+                                img.save(filename=fpath2, adjoin=False)
+                            LOG.debug("saved converted file to %s", fpath2)
+                    except Exception:
+                        LOG.exception("convert for '%s' failed", fpath)
                         if ignore:
                             continue
                         return False
